@@ -4,7 +4,7 @@
   <title><![CDATA[Artsy Engineering]]></title>
   <link href="http://artsy.github.io/atom.xml" rel="self"/>
   <link href="http://artsy.github.io/"/>
-  <updated>2013-05-17T13:12:27-04:00</updated>
+  <updated>2013-06-21T12:06:44-04:00</updated>
   <id>http://artsy.github.io/</id>
   <author>
     <name><![CDATA[Artsy]]></name>
@@ -12,6 +12,155 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Adding API Docs with Grape and Swagger]]></title>
+    <link href="http://artsy.github.io/blog/2013/06/21/adding-api-documentation-with-grape-swagger/"/>
+    <updated>2013-06-21T12:21:00-04:00</updated>
+    <id>http://artsy.github.io/blog/2013/06/21/adding-api-documentation-with-grape-swagger</id>
+    <content type="html"><![CDATA[<p>The Artsy website, Partner CMS, mobile tools, and all our hackathon experiments are built on top of a core API. We&#8217;ve put a lot of effort into documenting it internally. But developers don&#8217;t want to have to grok through code. With <a href="https://github.com/intridea/grape">Grape</a> and <a href="https://developers.helloreverb.com/swagger">Swagger</a>, adding an API explorer and exposing the API documentation has never been easier.</p>
+
+<p><img src="http://artsy.github.io/images/2013-06-21-adding-api-documentation-with-grape-swagger/swagger-ui.png" /></p>
+
+<!-- more -->
+
+
+<h3>Cross Origin Requests</h3>
+
+<p>You don&#8217;t need to include the API explorer into your application. Instead, enable Cross-Origin Resource Sharing (CORS) with <a href="https://github.com/cyu/rack-cors">rack-cors</a>.</p>
+
+<figure class='code'><figcaption><span>Gemfile</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">gem</span> <span class="s2">&quot;rack-cors&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'><figcaption><span>app.rb</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">use</span> <span class="no">Rack</span><span class="o">::</span><span class="no">Cors</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">allow</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">origins</span> <span class="s1">&#39;*&#39;</span>
+</span><span class='line'>    <span class="n">resource</span> <span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">:</span> <span class="ss">:any</span><span class="p">,</span> <span class="nb">methods</span><span class="p">:</span> <span class="ss">:get</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Your application will now respond to <code>OPTIONS</code> and <code>GET</code> requests with CORS headers. It&#8217;s also important to verify that errors still contain CORS headers, as shown in these RSpec tests.</p>
+
+<figure class='code'><figcaption><span>spec/cors_spec.rb</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">context</span> <span class="s2">&quot;CORS&quot;</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">it</span> <span class="s2">&quot;supports options&quot;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">options</span> <span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="p">{},</span> <span class="p">{</span>
+</span><span class='line'>      <span class="s2">&quot;HTTP_ORIGIN&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;http://cors.example.com&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="s2">&quot;HTTP_ACCESS_CONTROL_REQUEST_HEADERS&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Origin, Accept, Content-Type&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="s2">&quot;HTTP_ACCESS_CONTROL_REQUEST_METHOD&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;GET&quot;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="n">last_response</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">should</span> <span class="o">==</span> <span class="mi">200</span>
+</span><span class='line'>    <span class="n">last_response</span><span class="o">.</span><span class="n">headers</span><span class="o">[</span><span class="s1">&#39;Access-Control-Allow-Origin&#39;</span><span class="o">].</span><span class="n">should</span> <span class="o">==</span> <span class="s2">&quot;http://cors.example.com&quot;</span>
+</span><span class='line'>    <span class="n">last_response</span><span class="o">.</span><span class="n">headers</span><span class="o">[</span><span class="s1">&#39;Access-Control-Expose-Headers&#39;</span><span class="o">].</span><span class="n">should</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>  <span class="n">it</span> <span class="s2">&quot;includes Access-Control-Allow-Origin in the response&quot;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">get</span> <span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="p">{},</span> <span class="s2">&quot;HTTP_ORIGIN&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;http://cors.example.com&quot;</span>
+</span><span class='line'>    <span class="n">last_response</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">should</span> <span class="o">==</span> <span class="mi">200</span>
+</span><span class='line'>    <span class="n">last_response</span><span class="o">.</span><span class="n">headers</span><span class="o">[</span><span class="s1">&#39;Access-Control-Allow-Origin&#39;</span><span class="o">].</span><span class="n">should</span> <span class="o">==</span> <span class="s2">&quot;http://cors.example.com&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>  <span class="n">it</span> <span class="s2">&quot;includes Access-Control-Allow-Origin in errors&quot;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">get</span> <span class="s2">&quot;/invalid&quot;</span><span class="p">,</span> <span class="p">{},</span> <span class="s2">&quot;HTTP_ORIGIN&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;http://cors.example.com&quot;</span>
+</span><span class='line'>    <span class="n">last_response</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">should</span> <span class="o">==</span> <span class="mi">404</span>
+</span><span class='line'>    <span class="n">last_response</span><span class="o">.</span><span class="n">headers</span><span class="o">[</span><span class="s1">&#39;Access-Control-Allow-Origin&#39;</span><span class="o">].</span><span class="n">should</span> <span class="o">==</span> <span class="s2">&quot;http://cors.example.com&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>Grape-Swagger</h3>
+
+<p>There&#8217;s a gem called <a href="https://github.com/tim-vandecasteele/grape-swagger">grape-swagger</a> that exposes Swagger-compatible documentation from any Grape API with a one-liner, <code>add_swagger_documentation</code>.</p>
+
+<figure class='code'><figcaption><span>api.rb</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">module</span> <span class="nn">Acme</span>
+</span><span class='line'>  <span class="k">class</span> <span class="nc">API</span> <span class="o">&lt;</span> <span class="no">Grape</span><span class="o">::</span><span class="no">API</span>
+</span><span class='line'>    <span class="nb">format</span> <span class="ss">:json</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">desc</span> <span class="s2">&quot;This is the root of our API.&quot;</span>
+</span><span class='line'>    <span class="n">get</span> <span class="s2">&quot;/&quot;</span> <span class="k">do</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">add_swagger_documentation</span> <span class="n">api_version</span><span class="p">:</span> <span class="s1">&#39;v1&#39;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'><figcaption><span>spec/documentation_spec.rb</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">it</span> <span class="s2">&quot;swagger documentation&quot;</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">get</span> <span class="s2">&quot;/api/swagger_doc&quot;</span>
+</span><span class='line'>  <span class="n">last_response</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">should</span> <span class="o">==</span> <span class="mi">200</span>
+</span><span class='line'>  <span class="n">json_response</span> <span class="o">=</span> <span class="no">JSON</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">last_response</span><span class="o">.</span><span class="n">body</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">json_response</span><span class="o">[</span><span class="s2">&quot;apiVersion&quot;</span><span class="o">].</span><span class="n">should</span> <span class="o">==</span> <span class="s2">&quot;v1&quot;</span>
+</span><span class='line'>  <span class="n">json_response</span><span class="o">[</span><span class="s2">&quot;apis&quot;</span><span class="o">].</span><span class="n">size</span><span class="o">.</span><span class="n">should</span> <span class="o">&gt;</span> <span class="mi">0</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>Swagger UI</h3>
+
+<p>Use the <a href="http://petstore.swagger.wordnik.com">Swagger Petstore</a>, start your application, enter <em>http://localhost:9292/api/swagger_doc</em> and explore your API!</p>
+
+<p><img src="http://artsy.github.io/images/2013-06-21-adding-api-documentation-with-grape-swagger/swagger-ping.png" /></p>
+
+<h3>Working Sample</h3>
+
+<p>You can find a working sample in <a href="https://github.com/dblock/grape-on-rack">this demo application</a>, added in <a href="https://github.com/dblock/grape-on-rack/commit/004670804472812322b089fcf6a40b33d68c699c">this commit</a>.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Bootstrapping JSON Data with Rails and Backbone.js]]></title>
@@ -2442,90 +2591,6 @@ it out <a href="https://github.com/zamiang/detect-css3-3D-transform">on Github</
 
 
 <p>Please suggest further improvements in the comments below!</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[On Grid Thumbnails]]></title>
-    <link href="http://artsy.github.io/blog/2012/09/13/on-grid-thumbnails/"/>
-    <updated>2012-09-13T16:40:00-04:00</updated>
-    <id>http://artsy.github.io/blog/2012/09/13/on-grid-thumbnails</id>
-    <content type="html"><![CDATA[<p><img src="http://artsy.github.io/images/2012-09-13-on-grid-thumbnails/grid.jpg"></p>
-
-<p>Artsy Folio, our free iPad app for Gallery Partners, had been in the App Store for a couple of weeks before the iPad with a Retina display was announced. This had been something we expected internally and felt the application would be ready. We had all our image assets available in <em>@2x</em> versions and an image pipeline that would take scaling into account. With that in mind, we changed our artwork grid view to show a double resolution image. Finally, once we were happy that it worked fine on the simulator, we sent the build off to Apple for review.</p>
-
-<p>The app passed review, and was Retina-ready before the actual release. But within hours of getting our hands on a real Retina iPad, we had to pull the app. This post will explain why, and what we did to work it out.</p>
-
-<!--more-->
-
-
-<p>Scrolling the grid view was slow. Extremely slow. The reason why wasn&#8217;t obvious initially, but thanks to digging around using <a href="http://developer.apple.com/library/mac/#documentation/DeveloperTools/Conceptual/InstrumentsUserGuide/Introduction/Introduction.html">Instruments</a>, we saw that a great deal of time was spent in Apple&#8217;s image processing libraries. This was a strong hint that the problem involved taking the file and getting it to the screen.</p>
-
-<p>In our naiveté, Folio was originally using <code>UIImage</code>&#8217;s <code>initWithContentsOfFile:</code> to load (without caching) a jpg from the file system. Once the file was loaded into memory, we displayed it onscreen in an <code>UIImageView.</code> This was fast enough to deal with our small thumbnails of <em>240x240</em> but the moment that you start asking it to pull 3 or 4 <em>480x480</em> jpg files off the filesystem, decompress them and then put them on the screen, you&#8217;re not going to have a smooth scroll.</p>
-
-<p><img src="http://artsy.github.io/images/2012-09-13-on-grid-thumbnails/thumbnails.jpg"></p>
-
-<p>As we knew that we were looking at an issue with getting images from a file, it made sense to start looking at ways to move image processing off the main thread. This Stack Overflow thread on <a href="http://stackoverflow.com/questions/1815476/cgimage-uiimage-lazily-loading-on-ui-thread-causes-stutter">UIImage lazy loading</a> proved to be an essential start to dealing with our issue. We needed a thread-safe way to get the contents of a file and to pass them through once the images had been decoded. What we needed was <a href="https://gist.github.com/3715588">initImmediateLoadWithContentsOfFile</a>, a thread-safe way to go from a filepath to a <code>UIImage</code>.</p>
-
-<p>Now that we had a way to get an image that was safe to go on a background thread, we gave our grid an <code>NSOperationQueue</code> and created a method to kick off a <code>NSInvocationOperation</code> with our the cell we&#8217;re looking at and the address it needs to load the thumbnail.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nl">setImageAsyncAtPath:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="n">imageAddress</span> <span class="nl">forGridCell:</span><span class="p">(</span><span class="n">ARImageGridViewCell</span> <span class="o">*</span><span class="p">)</span><span class="n">cell</span> <span class="p">{</span>
-</span><span class='line'>    <span class="n">NSDictionary</span> <span class="o">*</span><span class="n">operationOptions</span> <span class="o">=</span> <span class="err">@</span><span class="p">{</span><span class="s">@&quot;address&quot;</span><span class="o">:</span> <span class="n">imageAddress</span><span class="p">,</span> <span class="s">@&quot;cell&quot;</span><span class="o">:</span> <span class="n">cell</span><span class="p">};</span>
-</span><span class='line'>    <span class="n">NSInvocationOperation</span> <span class="o">*</span><span class="n">operation</span> <span class="o">=</span> <span class="p">[[</span><span class="n">NSInvocationOperation</span> <span class="n">alloc</span><span class="p">]</span> <span class="nl">initWithTarget:</span><span class="n">self</span> <span class="nl">selector:</span><span class="k">@selector</span><span class="p">(</span><span class="nl">asyncLoadImage:</span><span class="p">)</span> <span class="nl">object:</span><span class="n">operationOptions</span><span class="p">];</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="p">[</span><span class="n">_operationQueue</span> <span class="nl">addOperation:</span><span class="n">operation</span><span class="p">];</span>
-</span><span class='line'><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>When we had the simplest implementation of <code>asyncLoadImage</code> we found that scrolling would sometimes result in grid cells displaying the wrong image. It turned out that in the time it took to decode the jpg,  the cell had already been reused for a different artwork. This one totally caught us off guard!</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nl">asyncLoadImage:</span><span class="p">(</span><span class="n">NSDictionary</span> <span class="o">*</span><span class="p">)</span><span class="n">options</span> <span class="p">{</span>
-</span><span class='line'>    <span class="err">@</span><span class="n">autoreleasepool</span> <span class="p">{</span>
-</span><span class='line'>        <span class="n">NSString</span> <span class="o">*</span><span class="n">address</span> <span class="o">=</span> <span class="n">options</span><span class="p">[</span><span class="s">@&quot;address&quot;</span><span class="p">];</span>
-</span><span class='line'>        <span class="n">ARImageGridViewCell</span> <span class="o">*</span><span class="n">cell</span> <span class="o">=</span> <span class="n">options</span><span class="p">[</span><span class="s">@&quot;cell&quot;</span><span class="p">];</span>
-</span><span class='line'>
-</span><span class='line'>        <span class="c1">// don&#39;t load if it&#39;s on a different cell</span>
-</span><span class='line'>        <span class="k">if</span> <span class="p">([</span><span class="n">cell</span><span class="p">.</span><span class="n">imagePath</span> <span class="nl">isEqualToString:</span><span class="n">address</span><span class="p">])</span> <span class="p">{</span>
-</span><span class='line'>            <span class="n">UIImage</span> <span class="o">*</span><span class="n">thumbnail</span> <span class="o">=</span> <span class="p">[[</span><span class="n">UIImage</span> <span class="n">alloc</span><span class="p">]</span> <span class="nl">initImmediateLoadWithContentsOfFile:</span><span class="n">address</span><span class="p">];</span>
-</span><span class='line'>
-</span><span class='line'>            <span class="c1">// double check that during the decoding the cell&#39;s not been re-used</span>
-</span><span class='line'>            <span class="k">if</span> <span class="p">([</span><span class="n">cell</span><span class="p">.</span><span class="n">imagePath</span> <span class="nl">isEqualToString:</span><span class="n">address</span><span class="p">]</span> <span class="o">&amp;&amp;</span> <span class="n">thumbnail</span><span class="p">)</span> <span class="p">{</span>
-</span><span class='line'>                <span class="p">[</span><span class="n">cell</span> <span class="nl">performSelectorOnMainThread:</span><span class="k">@selector</span><span class="p">(</span><span class="nl">setImage:</span><span class="p">)</span> <span class="nl">withObject:</span><span class="n">thumbnail</span> <span class="nl">waitUntilDone:</span><span class="n">NO</span><span class="p">];</span>
-</span><span class='line'>            <span class="p">}</span>
-</span><span class='line'>        <span class="p">}</span>
-</span><span class='line'>    <span class="p">}</span>
-</span><span class='line'><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>This meant we could have our UI thread dealing with scrolling, whilst <a href="https://developer.apple.com/technologies/mac/core.html">Grand Central Dispatch</a> would deal with ensuring the image processing was done asynchronously and as fast as possible.However, this still wasn&#8217;t enough. We were finding if you scrolled fast enough, you could still see images pop in after the grid cell was visible. For this, we actually went back to the beginning, and made our image pipeline create a <em>120x120</em> thumbnail for each artwork that we use <code>initImmediateLoadWithContentsOfFile</code> to load on the UI thread. This is fast enough to smoothly scroll, and is replaced by the higher resolution image practically instantly.</p>
-
-<p><img src="http://artsy.github.io/images/2012-09-13-on-grid-thumbnails/hover-thumbnails.jpg"></p>
-
-<p>The rest of the story is pretty straightforward. We wrapped all this up within a few days and got out a version of Folio for the Retina iPad, I ended up doing a talk about the issues involved in doing this in <a href="http://lsx.co/lsxcafe/">Leeds LSxCafé</a>, and you got a blog post out of it.</p>
 ]]></content>
   </entry>
   
