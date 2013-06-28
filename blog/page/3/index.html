@@ -9,7 +9,7 @@
   <meta name="author" content="Artsy">
 
   
-  <meta name="description" content="Artsy Folio, our free iPad app for Gallery Partners, had been in the App Store for a couple of weeks before the iPad with a Retina display was &hellip;">
+  <meta name="description" content="We now have over 4700 RSpec examples in one of our projects. They are stable, using the techniques described in an earlier post and organized in &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -71,6 +71,54 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+    <a href="/blog/2012/10/09/how-to-run-rspec-test-suites-in-parallel-with-jenkins-ci-build-flow/">
+      <div class="date">
+
+
+
+
+  
+<time datetime="2012-10-09T21:21:00-04:00" pubdate>10/09/12</time></div>
+    
+    
+      <h1 class="entry-title">How to Run RSpec Test Suites in Parallel With JenkinsCI Build Flow</h1>
+
+    
+    </a>
+    
+      <p class="meta">
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>We now have over 4700 RSpec examples in one of our projects. They are stable, using the techniques described in an <a href="/blog/2012/02/03/reliably-testing-asynchronous-ui-w-slash-rspec-and-capybara/">earlier post</a> and organized in <a href="/blog/2012/05/15/how-to-organize-over-3000-rspec-specs-and-retry-test-failures/">suites</a>. But they now take almost 3 hours to run, which is clearly unacceptable.</p>
+
+<p>To solve this, we have parallelized parts of the process with existing tools, and can turn a build around in just under an hour. This post will dive into our <a href="http://jenkins-ci.org/">Jenkins</a> build flow setup.</p>
+
+<p>To keep things simple, we&#8217;re going to only build the <code>master</code> branch. When a change is committed on <code>master</code> we&#8217;re going to push <code>master</code> to a <code>master-ci</code> branch and trigger a distributed build on <code>master-ci</code>. Once all the parts have finished, we&#8217;ll complete the build by pushing <code>master-ci</code> to <code>master-succeeded</code> and notify the dev team of success or failure.</p>
+
+<p>Here&#8217;s a diagram of what&#8217;s going on.</p>
+
+<p><img src="/images/2012-10-09-how-to-run-rspec-test-suites-in-parallel-with-jenkins-ci-build-flow/master-ci.png"></p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/10/09/how-to-run-rspec-test-suites-in-parallel-with-jenkins-ci-build-flow/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -502,50 +550,6 @@ which offers a solid pushState routing scheme. This includes a seamless hashtag 
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-    <a href="/blog/2012/05/16/generating-automatic-plain-text-mime-parts-with-rails-actionmailer/">
-      <div class="date">
-
-
-
-
-  
-<time datetime="2012-05-16T20:52:00-04:00" pubdate>05/16/12</time></div>
-    
-    
-      <h1 class="entry-title">Generating Automatic Plain Text MIME Parts With Rails ActionMailer</h1>
-
-    
-    </a>
-    
-      <p class="meta">
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>E-mail is one of the most important ways to engage your users. And every time you touch a user&#8217;s inbox, it reflects on your brand. But getting email right has become increasing difficult due to the complexities introduced by the thousands of web-based, desktop and mobile mail clients. Email formatting is like the &#8220;Hunger Games&#8221; where the major players include online services such as GMail, Yahoo, Hotmail or AOL, desktop clients such as Outlook and a myriad mobile devices ranging from iPhone and Android to Blackberry.</p>
-
-<p>To deal with this landscape, the MIME standard allows systems to send e-mail with multiple parts: <code>plain/text</code> for business-efficient devices such as the Blackberry, and <code>text/html</code> for web-based e-mail readers, such as GMail. Furthermore, <code>ActionMailer</code> supports multiple template formats: create an <code>.html.haml</code> template along with a <code>.txt.haml</code> template to generate both. We also know that <code>text/plain</code> email helps deliverability, but we believe a disproportionately small amount of text e-mails are actually read - the vast majority of devices are capable of parsing some HTML.</p>
-
-<p>Is it possible to avoid having to maintain two separate templates without sacrificing deliverability? How can we inject a <code>text/plain</code> part into HTML e-mail that is both useful and &#8220;free&#8221;?</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2012/05/16/generating-automatic-plain-text-mime-parts-with-rails-actionmailer/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/4/">&larr; Older</a>
@@ -573,6 +577,10 @@ which offers a solid pushState routing scheme. This includes a seamless hashtag 
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2013/06/23/normalizing-gmail-email-addresses-with-canonical-emails/">Normalizing GMail E-Mail Addresses with CanonicalEmails</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2013/06/21/adding-api-documentation-with-grape-swagger/">Adding API Docs with Grape and Swagger</a>
       </li>
     
@@ -586,10 +594,6 @@ which offers a solid pushState routing scheme. This includes a seamless hashtag 
     
       <li class="post">
         <a href="/blog/2013/04/01/an-easter-egg-for-curl/">An Easter Egg for Curl</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2013/03/29/musical-chairs/">Musical Chairs</a>
       </li>
     
   </ul>

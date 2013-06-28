@@ -9,7 +9,7 @@
   <meta name="author" content="Artsy">
 
   
-  <meta name="description" content="Last year, we have open-sourced and made extensive use of two Ruby libraries in our API: mongoid-cached-json and garner. Both transform the &hellip;">
+  <meta name="description" content="We use MongoDB as our primary store and have built a healthy amount of automation around various database instances and operational environments. For &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -71,6 +71,71 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+    <a href="/blog/2013/01/31/create-mongodb-command-lines-with-mongo/">
+      <div class="date">
+
+
+
+
+  
+<time datetime="2013-01-31T21:21:00-05:00" pubdate>01/31/13</time></div>
+    
+    
+      <h1 class="entry-title">Create MongoDB Command-Lines From Mongoid Configuration</h1>
+
+    
+    </a>
+    
+      <p class="meta">
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>We use MongoDB as our primary store and have built a healthy amount of automation around various database instances and operational environments. For example, we backup databases to S3 using <code>mongodump</code>, mirror data between instances with <code>mongorestore</code> and often need to open a MongoDB shell with <code>mongo</code> to examine data at the lowest level.</p>
+
+<p>Generating MongoDB command-lines is tedious and error-prone. Introducing a new gem called <a href="https://github.com/dblock/mongoid-shell">mongoid-shell</a> to help with this. The library can generate command-lines for various MongoDB shell tools from your Mongoid configuration.</p>
+
+<p>For example, connect to your production MongoDB instance from a <code>db:production:shell</code> Rake task.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">namespace</span> <span class="ss">:db</span>
+</span><span class='line'>  <span class="n">namespace</span> <span class="ss">:production</span>
+</span><span class='line'>    <span class="n">task</span> <span class="ss">:shell</span>
+</span><span class='line'>      <span class="no">Mongoid</span><span class="o">.</span><span class="n">load!</span> <span class="s2">&quot;mongoid.yml&quot;</span><span class="p">,</span> <span class="ss">:production</span>
+</span><span class='line'>      <span class="nb">system</span> <span class="no">Mongoid</span><span class="o">::</span><span class="no">Shell</span><span class="o">::</span><span class="no">Commands</span><span class="o">::</span><span class="no">Mongo</span><span class="o">.</span><span class="n">new</span><span class="o">.</span><span class="n">to_s</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2013/01/31/create-mongodb-command-lines-with-mongo/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -570,54 +635,6 @@ of the available methods work for us?</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-    <a href="/blog/2012/10/09/how-to-run-rspec-test-suites-in-parallel-with-jenkins-ci-build-flow/">
-      <div class="date">
-
-
-
-
-  
-<time datetime="2012-10-09T21:21:00-04:00" pubdate>10/09/12</time></div>
-    
-    
-      <h1 class="entry-title">How to Run RSpec Test Suites in Parallel With JenkinsCI Build Flow</h1>
-
-    
-    </a>
-    
-      <p class="meta">
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>We now have over 4700 RSpec examples in one of our projects. They are stable, using the techniques described in an <a href="/blog/2012/02/03/reliably-testing-asynchronous-ui-w-slash-rspec-and-capybara/">earlier post</a> and organized in <a href="/blog/2012/05/15/how-to-organize-over-3000-rspec-specs-and-retry-test-failures/">suites</a>. But they now take almost 3 hours to run, which is clearly unacceptable.</p>
-
-<p>To solve this, we have parallelized parts of the process with existing tools, and can turn a build around in just under an hour. This post will dive into our <a href="http://jenkins-ci.org/">Jenkins</a> build flow setup.</p>
-
-<p>To keep things simple, we&#8217;re going to only build the <code>master</code> branch. When a change is committed on <code>master</code> we&#8217;re going to push <code>master</code> to a <code>master-ci</code> branch and trigger a distributed build on <code>master-ci</code>. Once all the parts have finished, we&#8217;ll complete the build by pushing <code>master-ci</code> to <code>master-succeeded</code> and notify the dev team of success or failure.</p>
-
-<p>Here&#8217;s a diagram of what&#8217;s going on.</p>
-
-<p><img src="/images/2012-10-09-how-to-run-rspec-test-suites-in-parallel-with-jenkins-ci-build-flow/master-ci.png"></p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2012/10/09/how-to-run-rspec-test-suites-in-parallel-with-jenkins-ci-build-flow/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/3/">&larr; Older</a>
@@ -645,6 +662,10 @@ of the available methods work for us?</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2013/06/23/normalizing-gmail-email-addresses-with-canonical-emails/">Normalizing GMail E-Mail Addresses with CanonicalEmails</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2013/06/21/adding-api-documentation-with-grape-swagger/">Adding API Docs with Grape and Swagger</a>
       </li>
     
@@ -658,10 +679,6 @@ of the available methods work for us?</p>
     
       <li class="post">
         <a href="/blog/2013/04/01/an-easter-egg-for-curl/">An Easter Egg for Curl</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2013/03/29/musical-chairs/">Musical Chairs</a>
       </li>
     
   </ul>
