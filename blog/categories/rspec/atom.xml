@@ -4,7 +4,7 @@
   <title><![CDATA[Category: RSpec | Artsy Engineering]]></title>
   <link href="http://artsy.github.io/blog/categories/rspec/atom.xml" rel="self"/>
   <link href="http://artsy.github.io/"/>
-  <updated>2013-08-14T10:54:21-04:00</updated>
+  <updated>2014-04-18T12:33:24-04:00</updated>
   <id>http://artsy.github.io/</id>
   <author>
     <name><![CDATA[Artsy]]></name>
@@ -12,6 +12,73 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Isolating Spurious and Nondeterministic Tests]]></title>
+    <link href="http://artsy.github.io/blog/2014/01/30/isolating-spurious-and-nondeterministic-tests/"/>
+    <updated>2014-01-30T14:42:00-05:00</updated>
+    <id>http://artsy.github.io/blog/2014/01/30/isolating-spurious-and-nondeterministic-tests</id>
+    <content type="html"><![CDATA[<p>Testing is a critical part of our workflow at <a href="https://artsy.net">Artsy</a>. It gives us confidence to make regular, aggressive enhancements. But anyone who has worked with a large, complex test suite has struggled with occasional failures that are difficult to reproduce or fix.</p>
+
+<p>These failures might be due to slight timing differences or lack of proper isolation between tests. Integration tests are particularly thorny, since problems can originate not only in application code, but in the browser, testing tools (e.g., <a href="http://docs.seleniumhq.org/">Selenium</a>), database, network, or external APIs and dependencies.</p>
+
+<h2>The Quarantine</h2>
+
+<p>We've been <a href="http://artsy.github.io/blog/2012/05/15/how-to-organize-over-3000-rspec-specs-and-retry-test-failures/">automatically retrying failed tests</a>, with some success. However, these problems tend to get worse. (If you have 10 tests that each have a 1% chance of failing, roughly 1 in 10 builds will fail. If you have 50, 4 in 10 builds will fail.)</p>
+
+<p>Martin Fowler offers the most compelling thoughts on this topic in <a href="http://martinfowler.com/articles/nonDeterminism.html">Eradicating Non-Determinism in Tests</a>. (Read it, really.) He suggests quarantining problematic tests in a separate suite, so they don't block the build pipeline.</p>
+
+<!-- more -->
+
+
+<h2>Setting it up</h2>
+
+<p>This turned out to be pretty easy to set up, using our preferred tools of <a href="https://relishapp.com/rspec">RSpec</a> and <a href="http://travis-ci.com/">Travis</a>. First, tag a problem test with <code>spurious</code>:</p>
+
+<pre><code>it 'performs tricky browser interaction', spurious: true do
+  ...
+end
+</code></pre>
+
+<p>Your continuous integration script can exclude the tagged tests as follows:</p>
+
+<pre><code>bundle exec rspec --tag ~spurious
+</code></pre>
+
+<p>We'd like to be aware of spurious failures, but not allow them to fail the build. In our app's <code>.travis.yml</code> file, this is as simple as adding a script entry that always exits with <code>0</code> status:</p>
+
+<pre><code>language: ruby
+rvm:
+  - 1.9.3
+script:
+  - "bundle exec rspec --tag ~spurious"
+  - "bundle exec rspec --tag spurious || true"
+</code></pre>
+
+<p>We'll see any spurious failures in the build's output, but our pipeline won't be affected.</p>
+
+<h2>Bonus: Limiting quarantined tests</h2>
+
+<p>So, what prevents the quarantine from getting larger and larger, while the test suite gets weaker and weaker? Fowler <a href="http://martinfowler.com/articles/nonDeterminism.html#Quarantine">recommends</a> enforcing a limit on the number of quarantined tests (e.g., 8).</p>
+
+<p>We can even trigger a build failure if the limit is exceeded. This <code>.travis.yml</code> writes the spurious suite's abbreviated output to a file, then asserts that the summary mentions no more than "8 examples":</p>
+
+<pre><code>language: ruby
+rvm:
+  - 1.9.3
+script:
+  - "bundle exec rspec --tag ~spurious"
+  - "bundle exec rspec --tag spurious --format documentation --format progress --out spurious.out || true"
+  - "[[ $(grep -oE '^\d+' spurious.out) -le 8 ]]"
+</code></pre>
+
+<h2>Conclusion</h2>
+
+<p>The quarantine is no excuse to create tests that fail under realistic conditions. It's simply a framework for recognizing and, eventually, fixing or eliminating the problematic tests that inevitably crop up in a complex environment.</p>
+
+<p>Hopefully, our experiment is useful to other teams struggling with unreliable builds. Share any feedback in the comments!</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[How to Run RSpec Test Suites in Parallel with JenkinsCI Build Flow]]></title>
@@ -146,44 +213,39 @@ class User
 <p>  field :notified_at, type: DateTime
   after_save :notify!, :if => :notify?</p>
 
-<p>  def notify!</p>
-
-<pre><code>super
-update_attributes!({ notified_at: Time.now.utc })
-</code></pre>
-
-<p>  end
+<p>  def notify!
+    super
+    update_attributes!({ notified_at: Time.now.utc })
+  end
 end</p>
 
-<p><code>``
-We are overriding a black box</code>notify!` method and updating an attribute with a timestamp of the last notification.</p>
+<pre><code>We are overriding a black box `notify!` method and updating an attribute with a timestamp of the last notification.
 
-<p>Let's write a test.</p>
+Let's write a test.
 
-<p>``` ruby spec/models/user_spec.rb
-describe User do</p>
+``` ruby spec/models/user_spec.rb
+describe User do
 
-<p>  subject { User.new }</p>
+  subject { User.new }
 
-<p>  context "notification" do</p>
+  context "notification" do
 
-<pre><code>it "sends one email" do
-  expect {
-    subject.notify!
-  }.to change(ActionMailer::Base.deliveries, :count).by(1)
-end
+    it "sends one email" do
+      expect {
+        subject.notify!
+      }.to change(ActionMailer::Base.deliveries, :count).by(1)
+    end
 
-it "updates notified_at" do
-  expect { 
-    subject.notify!
-  }.to change(subject, :notified_at)
+    it "updates notified_at" do
+      expect { 
+        subject.notify!
+      }.to change(subject, :notified_at)
+    end
+
+  end
+
 end
 </code></pre>
-
-<p>  end</p>
-
-<p>end
-```</p>
 
 <p>All green. But once this code hit production, <code>notify!</code> was called in an infinite loop. How is that possible?</p>
 
@@ -197,20 +259,14 @@ end
 class DelayedJobObserver &lt; Mongoid::Observer
   observe Delayed::Job</p>
 
-<p>  class &lt;&lt; self</p>
+<p>  class &lt;&lt; self
+    attr_accessor :runs
+  end</p>
 
-<pre><code>attr_accessor :runs
-</code></pre>
-
-<p>  end</p>
-
-<p>  def after_create(delayed_job)</p>
-
-<pre><code>delayed_job.invoke_job
-DelayedJobObserver.runs += 1
-</code></pre>
-
-<p>  end
+<p>  def after_create(delayed_job)
+    delayed_job.invoke_job
+    DelayedJobObserver.runs += 1
+  end
 end</p>
 
 <p>DelayedJobObserver.runs = 0
@@ -254,16 +310,13 @@ end
 
 <p>Create a new Rake file in <code>lib/tasks/test_suites.rake</code> and declare an array of test suites.</p>
 
-<p>``` ruby lib/tasks/test_suites.rake
-  SPEC_SUITES = [</p>
-
-<pre><code>{ :id =&gt; :models, :pattern =&gt; "spec/models/**/*_spec.rb" },
-{ :id =&gt; :controllers, :pattern =&gt; "spec/controllers/**/*_spec.rb" },
-{ :id =&gt; :views, :pattern =&gt; "spec/views/**/*_spec.rb" }
-</code></pre>
-
-<p>  ]
-```</p>
+<p><code>ruby lib/tasks/test_suites.rake
+  SPEC_SUITES = [
+    { :id =&gt; :models, :pattern =&gt; "spec/models/**/*_spec.rb" },
+    { :id =&gt; :controllers, :pattern =&gt; "spec/controllers/**/*_spec.rb" },
+    { :id =&gt; :views, :pattern =&gt; "spec/views/**/*_spec.rb" }
+  ]
+</code></p>
 
 <!-- more -->
 
@@ -274,16 +327,13 @@ end
 require 'rspec/core/rake_task'</p>
 
 <p>namespace :test
-  namespace :suite</p>
-
-<pre><code>RSpec::Core::RakeTask.new("#{suite[:id]}:run") do |t|
-  t.pattern = suite[:pattern]
-  t.verbose = false
-  t.fail_on_error = false
-end
-</code></pre>
-
-<p>  end
+  namespace :suite
+    RSpec::Core::RakeTask.new("#{suite[:id]}:run") do |t|
+      t.pattern = suite[:pattern]
+      t.verbose = false
+      t.fail_on_error = false
+    end
+  end
 end
 ```</p>
 
@@ -319,12 +369,11 @@ A fix for making the <code>-e</code> option cumulative, so that one can pass mul
 require 'rspec/core/formatters/base_formatter'</p>
 
 <p>module RSpec
-  module Core</p>
+  module Core
+    module Formatters
+      class FailuresFormatter &lt; BaseFormatter</p>
 
-<pre><code>module Formatters
-  class FailuresFormatter &lt; BaseFormatter
-
-    # create a file called rspec.failures with a list of failed examples
+<pre><code>    # create a file called rspec.failures with a list of failed examples
     def dump_failures
       return if failed_examples.empty?
       f = File.new("rspec.failures", "w+")
@@ -349,55 +398,46 @@ end
 
 <p>In order to use the formatter, we must tell RSpec to <code>require</code> it with <code>--require</code> and to use it with <code>--format</code>. We don't want to lose our settings in <code>.rspec</code> either - all these options can be combined in the Rake task.</p>
 
-<p>``` ruby lib/tasks/test_suites.rake
+<p><code>ruby lib/tasks/test_suites.rake
 RSpec::Core::RakeTask.new("#{suite[:id]}:run") do |t|
   t.pattern = suite[:pattern]
   t.verbose = false
   t.fail_on_error = false
-  t.spec_opts = [</p>
-
-<pre><code>"--require", "#{Rails.root}/spec/support/formatters/failures_formatter.rb",
-"--format", "RSpec::Core::Formatters::FailuresFormatter",
-File.read(File.join(Rails.root, ".rspec")).split(/\n+/).map { |l| l.shellsplit }
-</code></pre>
-
-<p>  ].flatten
+  t.spec_opts = [
+    "--require", "#{Rails.root}/spec/support/formatters/failures_formatter.rb",
+    "--format", "RSpec::Core::Formatters::FailuresFormatter",
+    File.read(File.join(Rails.root, ".rspec")).split(/\n+/).map { |l| l.shellsplit }
+  ].flatten
 end
-```</p>
+</code></p>
 
 <p>Once a file is generated, we can feed it back to RSpec in another task, called <code>suite:suite[:id]:retry</code>.</p>
 
-<p>``` ruby lib/tasks/test_suites.rake
+<p><code>ruby lib/tasks/test_suites.rake
 RSpec::Core::RakeTask.new("#{suite[:id]}:retry") do |t|
   t.pattern = suite[:pattern]
   t.verbose = false
   t.fail_on_error = false
-  t.spec_opts = [</p>
-
-<pre><code>"-O", File.join(Rails.root, 'rspec.failures'),
-File.read(File.join(Rails.root, '.rspec')).split(/\n+/).map { |l| l.shellsplit }
-</code></pre>
-
-<p>  ].flatten
+  t.spec_opts = [
+    "-O", File.join(Rails.root, 'rspec.failures'),
+    File.read(File.join(Rails.root, '.rspec')).split(/\n+/).map { |l| l.shellsplit }
+  ].flatten
 end
-```</p>
+</code></p>
 
 <p>Finally, lets combine the two tasks and invoke <code>retry</code> when the <code>run</code> task fails.</p>
 
-<p>``` ruby lib/tasks/test_suites.rake
+<p><code>ruby lib/tasks/test_suites.rake
 task "#{suite[:id]}" do
   rspec_failures = File.join(Rails.root, 'rspec.failures')
   FileUtils.rm_f rspec_failures
   Rake::Task["spec:suite:#{suite[:id]}:run"].execute
-  unless $?.success?</p>
-
-<pre><code>puts "[#{Time.now}] Failed, retrying #{File.read(rspec_failures).split(/\n+/).count} failure(s) in spec:suite:#{suite[:id]} ..."
-Rake::Task["spec:suite:#{suite[:id]}:retry"].execute
-</code></pre>
-
-<p>  end
+  unless $?.success?
+    puts "[#{Time.now}] Failed, retrying #{File.read(rspec_failures).split(/\n+/).count} failure(s) in spec:suite:#{suite[:id]} ..."
+    Rake::Task["spec:suite:#{suite[:id]}:retry"].execute
+  end
 end
-```</p>
+</code></p>
 
 <p>A complete version of our <code>test_suites.rake</code>, including a <code>spec:suite:all</code> task that executes all specs can be found <a href="https://gist.github.com/2597305">in this gist</a>. Our Jenkins CI runs <code>rake spec:suite:all</code>, with a much improved weather report since we started using this system.</p>
 ]]></content>
@@ -429,19 +469,16 @@ end
 
 <p>The application is initialized in a usual Backbone way.</p>
 
-<p>``` coffeescript
+<p><code>coffeescript
 window.Splash =
   Views: {}
   Routers: {}
   Models: {}
-  initialize: -></p>
-
-<pre><code>contentWindow = new @Models.ContentWindow()
-@router = new @Routers.Client contentWindow
-new @Views.Responsive contentWindow
-</code></pre>
-
-<p>```</p>
+  initialize: -&gt;
+    contentWindow = new @Models.ContentWindow()
+    @router = new @Routers.Client contentWindow
+    new @Views.Responsive contentWindow
+</code></p>
 
 <p>From here, everything is asynchronous. The router will wire up the events and the different views that make up the page will render themselves.</p>
 
@@ -453,41 +490,33 @@ new @Views.Responsive contentWindow
 
 <p>class Splash.Routers.Client extends Backbone.Router</p>
 
-<p>  routes:</p>
+<p>  routes:
+    'log_in' : 'log_in'</p>
 
-<pre><code>'log_in' : 'log_in'
-</code></pre>
+<p>  log_in: ->
+    Splash.login = new Splash.Views.Login()
+    @navigate 'log_in'</p>
 
-<p>  log_in: -></p>
+<pre><code>
+The log-in view has two input fields: an e-mail address and password. We can write a Capybara test that enters valid values and ensures that the user logged in by checking for a specific header.
 
-<pre><code>Splash.login = new Splash.Views.Login()
-@navigate 'log_in'
-</code></pre>
+``` ruby
+require 'spec_helper'
 
-<p>```</p>
-
-<p>The log-in view has two input fields: an e-mail address and password. We can write a Capybara test that enters valid values and ensures that the user logged in by checking for a specific header.</p>
-
-<p>``` ruby
-require 'spec_helper'</p>
-
-<p>feature "Log In" do
-  context "using a browser", :js => true do</p>
-
-<pre><code>scenario "allows a user to login" do
-  user = Fabricate(:user)
-  visit "/"
-  click_link "log_in"
-  fill_in "user[email]", :with =&gt; user.email
-  fill_in "user[password]", :with =&gt; user.password
-  click_button "sign in"
-  find("h1", :visible =&gt; true).text.should == "Login Successful"
+feature "Log In" do
+  context "using a browser", :js =&gt; true do
+    scenario "allows a user to login" do
+      user = Fabricate(:user)
+      visit "/"
+      click_link "log_in"
+      fill_in "user[email]", :with =&gt; user.email
+      fill_in "user[password]", :with =&gt; user.password
+      click_button "sign in"
+      find("h1", :visible =&gt; true).text.should == "Login Successful"
+    end
+  end
 end
 </code></pre>
-
-<p>  end
-end
-```</p>
 
 <p>This test works well with Capybara, because it tries to wait for elements to appear on the page. For example, when you use <code>fill_in</code> it attempts to locate an element with the <code>user[email]</code> id, several times, until it times out or until the element is on the page.</p>
 
@@ -499,15 +528,12 @@ end
 
 <p>Consider a widget that needs to be saved by making a postback.</p>
 
-<p>``` coffeescript
+<p><code>coffeescript
 @$el.removeClass("saved").addClass('saving')
 @widget.save
-  success: =></p>
-
-<pre><code>@$el.removeClass("saving").addClass("saved")
-</code></pre>
-
-<p>```</p>
+  success: =&gt;
+    @$el.removeClass("saving").addClass("saved")
+</code></p>
 
 <p>When the widget is saved, its element will get a <code>.saved</code> CSS class. The test can wait for it.</p>
 
@@ -534,36 +560,30 @@ end
 
 <p>If you're using jQuery, you can test the number of active connections to a server. The number is zero when all pending AJAX requests have finished. This was an original idea from <a href="http://pivotallabs.com/users/mgehard/blog/articles/1671-waiting-for-jquery-ajax-calls-to-finish-in-cucumber">Pivotal</a>.</p>
 
-<p>``` ruby spec/support/wait_for_ajax_helper.rb
+<p><code>ruby spec/support/wait_for_ajax_helper.rb
 def wait_for_ajax(timeout = Capybara.default_wait_time)
-  page.wait_until(timeout) do</p>
-
-<pre><code>page.evaluate_script 'jQuery.active == 0'
-</code></pre>
-
-<p>  end
+  page.wait_until(timeout) do
+    page.evaluate_script 'jQuery.active == 0'
+  end
 end
-```</p>
+</code></p>
 
 <h2>Remaining DOM Events</h2>
 
 <p>This one is a bit tricker. We can leverage the fact that JavaScript engines are updating the UI on a single thread. If you defer an action it will execute after everything else that has been deferred before it. Therefore we can queue an addition of an empty DIV with a new id and finally wait for it. By using a unique ID we allow the waits to stack up nicely in a single spec.</p>
 
-<p>``` ruby spec/support/wait_for_dom_helper_.rb
+<p><code>ruby spec/support/wait_for_dom_helper_.rb
 def wait_for_dom(timeout = Capybara.default_wait_time)
   uuid = SecureRandom.uuid
   page.find("body")
-  page.evaluate_script &lt;&lt;-EOS</p>
-
-<pre><code>_.defer(function() {
-  $('body').append("&lt;div id='#{uuid}'&gt;&lt;/div&gt;");
-});
-</code></pre>
-
-<p>  EOS
+  page.evaluate_script &lt;&lt;-EOS
+    _.defer(function() {
+      $('body').append("&lt;div id='#{uuid}'&gt;&lt;/div&gt;");
+    });
+  EOS
   page.find("##{uuid}")
 end
-```</p>
+</code></p>
 
 <p>We do have to make sure that the body element is loaded, first. This allows a <code>wait_for_dom</code> right after we navigate to a page that executes AJAX queries on load.</p>
 
