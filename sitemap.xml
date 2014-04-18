@@ -236,12 +236,6 @@
     </url>
     <url>
         <loc>
-            http://artsy.github.io/blog/2013/06/23/building-an-english-auction-with-mongodb/
-        </loc>
-        <lastmod>2014-04-18T12:31:58-04:00</lastmod>
-    </url>
-    <url>
-        <loc>
             http://artsy.github.io/blog/2013/06/23/normalizing-gmail-email-addresses-with-canonical-emails/
         </loc>
         <lastmod>2014-01-22T18:20:13-05:00</lastmod>
@@ -293,16 +287,22 @@
         <lastmod>2014-04-18T12:31:58-04:00</lastmod>
     </url>
     <url>
+        <loc>
+            http://artsy.github.io/blog/2014/04/17/building-an-english-auction-with-mongodb/
+        </loc>
+        <lastmod>2014-04-18T12:36:50-04:00</lastmod>
+    </url>
+    <url>
         <loc>http://artsy.github.io/about/</loc>
         <lastmod>2014-01-22T18:20:13-05:00</lastmod>
     </url>
     <url>
         <loc>http://artsy.github.io/blog/archives/</loc>
-        <lastmod>2014-04-18T12:31:58-04:00</lastmod>
+        <lastmod>2014-04-18T12:36:50-04:00</lastmod>
     </url>
     <url>
         <loc>http://artsy.github.io/</loc>
-        <lastmod>2014-04-18T12:31:58-04:00</lastmod>
+        <lastmod>2014-04-18T12:36:50-04:00</lastmod>
     </url>
     <url>
         <loc>http://artsy.github.io/open-source/</loc>
