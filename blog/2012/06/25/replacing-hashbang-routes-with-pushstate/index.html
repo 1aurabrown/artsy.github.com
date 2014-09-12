@@ -29,6 +29,8 @@
   <!--[if IE 8]>
 <link href="/stylesheets/custom/ie_font.css" type="text/css">
 <![endif]-->
+
+
   
   <script type="text/javascript">
     var _gaq = _gaq || [];
@@ -56,7 +58,7 @@
   
   <header id="banner"><hgroup>
   <div id="header">
-    <h2>Inspiration from the engineering team at <a href="http://artsy.net">Artsy</a> — A new way to discover fine art.</h2>
+    <h2>Inspiration from the engineering team at <a href="https://artsy.net">Artsy</a> — Discover, Research, and Collect the World's Best Art Online.</h2>
   </div>
 </hgroup>
 
@@ -183,21 +185,21 @@ internal links.</p>
 <span class='line-number'>18</span>
 <span class='line-number'>19</span>
 <span class='line-number'>20</span>
-</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="c1"># Globally capture clicks. If they are internal and not in the pass </span>
+</pre></td><td class='code'><pre><code class='coffeescript'><span class='line'><span class="c1"># Globally capture clicks. If they are internal and not in the pass</span>
 </span><span class='line'><span class="c1"># through list, route them through Backbone&#39;s navigate method.</span>
-</span><span class='line'><span class="nx">$</span><span class="p">(</span><span class="nb">document</span><span class="p">).</span><span class="kc">on</span> <span class="s2">&quot;click&quot;</span><span class="p">,</span> <span class="s2">&quot;a[href^=&#39;/&#39;]&quot;</span><span class="p">,</span> <span class="nf">(event) -&gt;</span>
+</span><span class='line'><span class="nx">$</span><span class="p">(</span><span class="nb">document</span><span class="p">).</span><span class="nx">on</span> <span class="s">&quot;click&quot;</span><span class="p">,</span> <span class="s">&quot;a[href^=&#39;/&#39;]&quot;</span><span class="p">,</span> <span class="nf">(event) -&gt;</span>
 </span><span class='line'>
-</span><span class='line'>  <span class="nv">href = </span><span class="nx">$</span><span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="nx">currentTarget</span><span class="p">).</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;href&#39;</span><span class="p">)</span>
+</span><span class='line'>  <span class="nv">href = </span><span class="nx">$</span><span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="nx">currentTarget</span><span class="p">).</span><span class="nx">attr</span><span class="p">(</span><span class="s">&#39;href&#39;</span><span class="p">)</span>
 </span><span class='line'>
 </span><span class='line'>  <span class="c1"># chain &#39;or&#39;s for other black list routes</span>
-</span><span class='line'>  <span class="nv">passThrough = </span><span class="nx">href</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="s1">&#39;sign_out&#39;</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+</span><span class='line'>  <span class="nv">passThrough = </span><span class="nx">href</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="s">&#39;sign_out&#39;</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">0</span>
 </span><span class='line'>
 </span><span class='line'>  <span class="c1"># Allow shift+click for new tabs, etc.</span>
 </span><span class='line'>  <span class="k">if</span> <span class="o">!</span><span class="nx">passThrough</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="nx">event</span><span class="p">.</span><span class="nx">altKey</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="nx">event</span><span class="p">.</span><span class="nx">ctrlKey</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="nx">event</span><span class="p">.</span><span class="nx">metaKey</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="nx">event</span><span class="p">.</span><span class="nx">shiftKey</span>
 </span><span class='line'>    <span class="nx">event</span><span class="p">.</span><span class="nx">preventDefault</span><span class="p">()</span>
 </span><span class='line'>
 </span><span class='line'>    <span class="c1"># Remove leading slashes and hash bangs (backward compatablility)</span>
-</span><span class='line'>    <span class="nv">url = </span><span class="nx">href</span><span class="p">.</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/^\//</span><span class="p">,</span><span class="s1">&#39;&#39;</span><span class="p">).</span><span class="nx">replace</span><span class="p">(</span><span class="s1">&#39;\#\!\/&#39;</span><span class="p">,</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+</span><span class='line'>    <span class="nv">url = </span><span class="nx">href</span><span class="p">.</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/^\//</span><span class="p">,</span><span class="s">&#39;&#39;</span><span class="p">).</span><span class="nx">replace</span><span class="p">(</span><span class="s">&#39;\#\!\/&#39;</span><span class="p">,</span><span class="s">&#39;&#39;</span><span class="p">)</span>
 </span><span class='line'>
 </span><span class='line'>    <span class="c1"># Instruct Backbone to trigger routing events</span>
 </span><span class='line'>    <span class="nx">App</span><span class="p">.</span><span class="nx">router</span><span class="p">.</span><span class="nx">navigate</span> <span class="nx">url</span><span class="p">,</span> <span class="p">{</span> <span class="nv">trigger: </span><span class="kc">true</span> <span class="p">}</span>
@@ -247,8 +249,8 @@ links still expecting the #! routing scheme.</p>
 <h3>The Server</h3>
 
 <p>Now that our app will receive requests to full URLs
-&#8216;http://artsy.net/artwork/mattew-abbott-lobby-and-supercomputer&#8217;
-instead of &#8216;http://artsy.net/#!/artwork/mattew-abbott-lobby-and-supercomputer&#8217;,
+&#8216;https://artsy.net/artwork/mattew-abbott-lobby-and-supercomputer&#8217;
+instead of &#8216;https://artsy.net/#!/artwork/mattew-abbott-lobby-and-supercomputer&#8217;,
 we need to update our Rails setup.</p>
 
 <p>Below is an excerpt from our Rails application&#8217;s router.
@@ -421,7 +423,8 @@ There&#8217;s no need to look back. The future is here and its URLs are #! free!
   <ul>
     <li> <a href="/about">About Us</a></li>
     <li> <a href="/open-source">Artsy Open-Source</a></li>
-    <li> <a href="http://artsy.net/job/developer">Join the Artsy Engineering Team</a></li>
+    <li> <a href="https://developers.artsy.net">Artsy Public API</a></li>
+    <li> <a href="https://artsy.net/job/developer">Join the Artsy Engineering Team</a></li>
   </ul>
 </section>
 <section id="recent_posts_section">
@@ -429,23 +432,23 @@ There&#8217;s no need to look back. The future is here and its URLs are #! free!
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2014/04/17/building-an-english-auction-with-mongodb/">Building an English Auction with MongoDB</a>
+        <a href="/blog/2014/09/12/designing-the-public-artsy-api/">Designing the Public Artsy API</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/04/02/refactoring-infrastructure/">Refactoring Infrastructure</a>
+        <a href="/blog/2014/09/05/we-open-sourced-our-isomorphic-javascript-website/">We open sourced our Isomorphic Javascript website</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/03/18/presenters-and-memoization-moving-logic-out-of-templates/">Presenters and Memoization: Moving Logic out of Templates</a>
+        <a href="/blog/2014/08/08/CocoaPods-Caching/">Using CocoaPods Caching with Travis CI</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/03/17/ruby-helper-to-group-artworks-into-a-pinterest-style-layout-for-email/">Ruby Helper to Group Artworks into a Pinterest-style Layout for Email</a>
+        <a href="/blog/2014/08/07/taking-a-snapshot-with-second-curtain/">Taking a Snapshot with Second Curtain</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/03/17/some-tips-for-email-layout-and-responsiveness/">Some Tips for Email Layout and Responsiveness</a>
+        <a href="/blog/2014/08/04/aspect-oriented-programming-and-aranalytics/">Aspect-Oriented Programming and ARAnalytics</a>
       </li>
     
   </ul>

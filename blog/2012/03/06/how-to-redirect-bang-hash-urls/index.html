@@ -9,7 +9,7 @@
   <meta name="author" content="Artsy">
 
   
-  <meta name="description" content="Sometimes you type a hash-bang URL too fast, bang first. Consider http://artsy.net/!#/log_in. Rails will receive /! as the file path, resulting in a &hellip;">
+  <meta name="description" content="Sometimes you type a hash-bang URL too fast, bang first. Consider https://artsy.net/!#/log_in. Rails will receive /! as the file path, resulting in a &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -28,6 +28,8 @@
   <!--[if IE 8]>
 <link href="/stylesheets/custom/ie_font.css" type="text/css">
 <![endif]-->
+
+
   
   <script type="text/javascript">
     var _gaq = _gaq || [];
@@ -55,7 +57,7 @@
   
   <header id="banner"><hgroup>
   <div id="header">
-    <h2>Inspiration from the engineering team at <a href="http://artsy.net">Artsy</a> — A new way to discover fine art.</h2>
+    <h2>Inspiration from the engineering team at <a href="https://artsy.net">Artsy</a> — Discover, Research, and Collect the World's Best Art Online.</h2>
   </div>
 </hgroup>
 
@@ -97,7 +99,7 @@
 
 <div class="entry-content"><p>Sometimes you type a hash-bang URL too fast, bang first.</p>
 
-<p>Consider <code>http://artsy.net/!#/log_in</code>. Rails will receive <code>/!</code> as the file path, resulting in a 404, File Not Found error. The part of the URL after the hash is a position within the page and is never sent to the web server.</p>
+<p>Consider <code>https://artsy.net/!#/log_in</code>. Rails will receive <code>/!</code> as the file path, resulting in a 404, File Not Found error. The part of the URL after the hash is a position within the page and is never sent to the web server.</p>
 
 <p>It&#8217;s actually pretty easy to handle this scenario and redirect to the corresponding hash-bang URL.</p>
 
@@ -161,8 +163,6 @@
 </span><span class='line'>      <span class="n">window</span><span class="o">.</span><span class="n">location</span> <span class="o">=</span> <span class="s1">&#39;/#!&#39;</span> <span class="o">+</span> <span class="n">window</span><span class="o">.</span><span class="n">location</span><span class="o">.</span><span class="n">hash</span><span class="o">.</span><span class="n">substring</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>You can try this on <a href="http://artsy.net/!#/log_in" target="_blank">http://artsy.net/!#/log_in</a>. Watch it flip the bang-hash into a hash-bang and redirect to our login page. The redirect page could also be a good place to put an easter egg ;)</p>
 </div>
 
 
@@ -254,7 +254,8 @@
   <ul>
     <li> <a href="/about">About Us</a></li>
     <li> <a href="/open-source">Artsy Open-Source</a></li>
-    <li> <a href="http://artsy.net/job/developer">Join the Artsy Engineering Team</a></li>
+    <li> <a href="https://developers.artsy.net">Artsy Public API</a></li>
+    <li> <a href="https://artsy.net/job/developer">Join the Artsy Engineering Team</a></li>
   </ul>
 </section>
 <section id="recent_posts_section">
@@ -262,23 +263,23 @@
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2014/04/17/building-an-english-auction-with-mongodb/">Building an English Auction with MongoDB</a>
+        <a href="/blog/2014/09/12/designing-the-public-artsy-api/">Designing the Public Artsy API</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/04/02/refactoring-infrastructure/">Refactoring Infrastructure</a>
+        <a href="/blog/2014/09/05/we-open-sourced-our-isomorphic-javascript-website/">We open sourced our Isomorphic Javascript website</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/03/18/presenters-and-memoization-moving-logic-out-of-templates/">Presenters and Memoization: Moving Logic out of Templates</a>
+        <a href="/blog/2014/08/08/CocoaPods-Caching/">Using CocoaPods Caching with Travis CI</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/03/17/ruby-helper-to-group-artworks-into-a-pinterest-style-layout-for-email/">Ruby Helper to Group Artworks into a Pinterest-style Layout for Email</a>
+        <a href="/blog/2014/08/07/taking-a-snapshot-with-second-curtain/">Taking a Snapshot with Second Curtain</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/03/17/some-tips-for-email-layout-and-responsiveness/">Some Tips for Email Layout and Responsiveness</a>
+        <a href="/blog/2014/08/04/aspect-oriented-programming-and-aranalytics/">Aspect-Oriented Programming and ARAnalytics</a>
       </li>
     
   </ul>

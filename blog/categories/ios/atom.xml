@@ -4,7 +4,7 @@
   <title><![CDATA[Category: iOS | Artsy Engineering]]></title>
   <link href="http://artsy.github.io/blog/categories/ios/atom.xml" rel="self"/>
   <link href="http://artsy.github.io/"/>
-  <updated>2014-04-18T12:37:27-04:00</updated>
+  <updated>2014-09-12T13:17:12-04:00</updated>
   <id>http://artsy.github.io/</id>
   <author>
     <name><![CDATA[Artsy]]></name>
@@ -14,240 +14,611 @@
 
   
   <entry>
-    <title type="html"><![CDATA[ARAnalytics - Analytics for iOS Apps]]></title>
-    <link href="http://artsy.github.io/blog/2013/04/10/aranalytics/"/>
-    <updated>2013-04-10T17:23:00-04:00</updated>
-    <id>http://artsy.github.io/blog/2013/04/10/aranalytics</id>
-    <content type="html"><![CDATA[<p>In both my <a href="http://orta.github.com">personal apps</a> and Artsy Folio, I'm always after a deeper understanding of how people use the app. There's three ways to do this: ask users, watch users and track usage. I'd like to talk about the third of these.</p>
-
-<p>We've experimented with quite a lot of analytics tools for the Artsy website, and it seemed fitting to do the same for our mobile app. We wanted the freedom to change the analytics tool without having to change the code, and so <a href="http://github.com/orta/ARAnalytics">ARAnalytics</a> was born.</p>
+    <title type="html"><![CDATA[Using CocoaPods Caching with Travis CI]]></title>
+    <link href="http://artsy.github.io/blog/2014/08/08/CocoaPods-Caching/"/>
+    <updated>2014-08-08T11:46:00-04:00</updated>
+    <id>http://artsy.github.io/blog/2014/08/08/CocoaPods-Caching</id>
+    <content type="html"><![CDATA[<p>As <a href="http://artsy.github.io/blog/2014/08/07/taking-a-snapshot-with-second-curtain/">Ash said earlier</a> we like using Continuous Integration. Today I spent a large amount of time migrating us to use the new CocoaPods caching system in Travis CI. To make up for my lost time I'm passing on what I've learned and also showing how we do CI at Artsy with Objective-C apps. If you're interested in how we do it in Swift, you can just check <a href="https://github.com/artsy/eidolon">Eidolon</a>.</p>
 
 <!-- more -->
 
 
-<p>ARAnalytics is the adaption of <a href="https://github.com/jkrall/analytical">Analytical</a> and  <a href="http://segmentio.github.com/analytics.js/">Analytics.js</a> to iOS. By using <a href="http://cocoapods.org">Cocoapods</a> it became possible to set up the entire analytics stack with only a few lines of code in your <code>Podfile</code>.</p>
+<p>First and foremost, this only works if you are paying for Travis CI.</p>
 
-<p><code>ruby
-  pod "ARAnalytics/Crashlytics"
-  pod "ARAnalytics/Mixpanel"
-</code></p>
+<p>Travis CI recently merged in support for <a href="http://docs.travis-ci.com/user/caching/">Caching of CocoaPods</a> - this is great! By using this, we've reduced our build times from an average of about 10 minutes, to about 7 minutes. It works by using your <code>Podfile.lock</code> as a key to cache your <code>Pods</code> directory, if the lock hasn't changed then there's no need to update the Cache and so <code>pod install</code> is not called on your project. This caused me an issue as the <code>[Project].xcworkspace</code> file that CocoaPods generates was not in source control, and the app wouldn't build. Useful note, if you're using <a href="http://guides.cocoapods.org/syntax/podfile.html#pod">development pods</a> in your build you probably shouldn't use this as your Pods directory can get out of sync with the cached version.</p>
 
-<p>The list of supported libraries is pretty vast ( <em>TestFlight, Mixpanel, Localytics, Flurry, Google Analytics, KISSMetrics, Countly, Crittercism, Bugsnag and Crashlytics</em> ) and the API for <code>ARAnalytics</code> tries to bridge any gaps it can find in the implementations.</p>
+<p>We use a <a href="https://github.com/artsy/eidolon/blob/master/Makefile">Makefile</a> to separate the tasks required to build, test and deploy an app. The general structure of our Makefile is:</p>
 
-<p><code>ARAnalytics</code> simplifies the API to two main parts of tracking; user details and events. User details are things like your internal ID for a user, and custom properties like your app's preferences, whilst events are temporal actions that are triggered based off user actions.</p>
+<table>
+<thead>
+<tr>
+<th> Action        </th>
+<th> Reason </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> Constants </td>
+<td> A collection of constants that get resued by different make tasks. </td>
+</tr>
+<tr>
+<td> CI Tasks </td>
+<td> Separate commands necessary for running Xcode projects from the terminal. </td>
+</tr>
+<tr>
+<td> Actions </td>
+<td> Commands that manipulate your project state, or maintainance commands. </td>
+</tr>
+<tr>
+<td> Deployment </td>
+<td> Commands to get your app ready for the App Store, or Hockey. </td>
+</tr>
+</tbody>
+</table>
 
-<p>There is another tool worth mentioning and that is <a href="http://cocoadocs.org/dosets/Analytics/0.0.5/">Analytics</a> which is a new port of Analytics.js which does a similar <em>simple API to different analytics providers</em> but works by offloading the work to the server. I think there are advantages and disadvantages to both of these approaches, but I think one or the other should cover nearly all use cases!</p>
 
-<p>ARAnalytics is available on Github at <a href="http://github.com/orta/ARAnalytics">orta/ARAnalytics</a> and documented on <a href="http://cocoadocs.org/docsets/ARAnalytics/1.2/">Cocoadocs</a> (which Artsy proudly sponsors!)</p>
+<p>If you don't know the syntax for Make, essentially if it's on the same line you're either setting constants or calling other make commands. If it's on a separate line then you are running a shell command.</p>
+
+<p>This is the <a href="http://orta.io/#folio-header-unit">Artsy Folio</a> Makefile in full:</p>
+
+<p>``` make</p>
+
+<h1>Constants</h1>
+
+<p>WORKSPACE = Artsy Folio.xcworkspace
+XCPROJECT = Artsy\ Folio.xcodeproj
+SCHEME = ArtsyFolio
+CONFIGURATION = Beta
+APP_PLIST = Info.plist
+PLIST_BUDDY = /usr/libexec/PlistBuddy
+TARGETED_DEVICE_FAMILY = \"1,2\"</p>
+
+<p>BUNDLE_VERSION = $(shell $(PLIST_BUDDY) -c "Print CFBundleVersion" $(APP_PLIST))
+GIT_COMMIT = $(shell git log -n1 --format='%h')
+ALPHA_VERSION = $(BUNDLE_VERSION)-$(BUILD_NUMBER)-$(GIT_COMMIT)</p>
+
+<p>GIT_COMMIT_REV = $(shell git log -n1 --format='%h')
+GIT_COMMIT_SHA = $(shell git log -n1 --format='%H')
+GIT_REMOTE_ORIGIN_URL = $(shell git config --get remote.origin.url)</p>
+
+<p>DATE_MONTH = $(shell date "+%e %h")
+DATE_VERSION = $(shell date "+%Y.%m.%d")</p>
+
+<p>CHANGELOG = CHANGELOG.md
+CHANGELOG_SHORT = CHANGELOG_SHORT.md</p>
+
+<p>IPA = ArtsyFolio.ipa
+DSYM = ArtsyFolio.app.dSYM.zip</p>
+
+<h1>Phony tasks are tasks that could potentially have a file with the same name in the current folder</h1>
+
+<p>.PHONY: build clean test ci</p>
+
+<h1>CI Tasks</h1>
+
+<p>ci: CONFIGURATION = Debug
+ci: pods build</p>
+
+<p>build:
+    set -o pipefail &amp;&amp; xcodebuild -workspace "$(WORKSPACE)" -scheme "$(SCHEME)" -sdk iphonesimulator -destination 'name=iPad Retina' build | xcpretty -c</p>
+
+<p>clean:
+    xctool -workspace "$(WORKSPACE)" -scheme "$(SCHEME)" -configuration "$(CONFIGURATION)" clean</p>
+
+<p>test:
+    set -o pipefail &amp;&amp; xcodebuild -workspace "$(WORKSPACE)" -scheme "$(SCHEME)" -configuration Debug test -sdk iphonesimulator -destination 'name=iPad Retina' | second_curtain | xcpretty -c --test</p>
+
+<p>lint:
+    bundle exec fui --path Classes find</p>
+
+<pre><code>bundle exec obcd --path Classes find HeaderStyle
+bundle exec obcd --path "ArtsyFolio Tests" find HeaderStyle
+</code></pre>
+
+<h1>Actions</h1>
+
+<p>ipa:
+    $(PLIST_BUDDY) -c "Set CFBundleDisplayName $(BUNDLE_NAME)" $(APP_PLIST)
+    $(PLIST_BUDDY) -c "Set CFBundleVersion $(DATE_VERSION)" $(APP_PLIST)
+    ipa build --scheme $(SCHEME) --configuration $(CONFIGURATION) -t</p>
+
+<p>alpha_version:
+    $(PLIST_BUDDY) -c "Set CFBundleVersion $(ALPHA_VERSION)" $(APP_PLIST)</p>
+
+<p>change_version_to_date:
+    $(PLIST_BUDDY) -c "Set CFBundleVersion $(DATE_VERSION)" $(APP_PLIST)</p>
+
+<p>set_git_properties:
+    $(PLIST_BUDDY) -c "Set GITCommitRev $(GIT_COMMIT_REV)" $(APP_PLIST)
+    $(PLIST_BUDDY) -c "Set GITCommitSha $(GIT_COMMIT_SHA)" $(APP_PLIST)
+    $(PLIST_BUDDY) -c "Set GITRemoteOriginURL $(GIT_REMOTE_ORIGIN_URL)" $(APP_PLIST)</p>
+
+<p>pods: remove_debug_pods
+pods:
+    rm -rf Pods
+    bundle install
+    bundle exec pod install</p>
+
+<p>remove_debug_pods:
+    perl -pi -w -e "s{pod 'Reveal-iOS-SDK'}{}g" Podfile</p>
+
+<p>update_bundle_version:
+    @printf 'What is the new human-readable release version? '; \
+        read HUMAN_VERSION; \
+        $(PLIST_BUDDY) -c "Set CFBundleShortVersionString $$HUMAN_VERSION" $(APP_PLIST)</p>
+
+<p>mogenerate:
+    @printf 'What is the new Core Data version? '; \
+        read CORE_DATA_VERSION; \
+        mogenerator -m "Resources/CoreData/ArtsyPartner.xcdatamodeld/ArtsyFolio v$$CORE_DATA_VERSION.xcdatamodel/" --base-class ARManagedObject --template-path config/mogenerator/artsy --machine-dir Classes/Models/Generated/ --human-dir /tmp/ --template-var arc=true</p>
+
+<h1>Deployment</h1>
+
+<p>deploy: ipa distribute</p>
+
+<p>alpha: BUNDLE_NAME = 'Folio α'
+alpha: NOTIFY = 0
+alpha: alpha_version deploy</p>
+
+<p>appstore: BUNDLE_NAME = 'Artsy Folio'
+appstore: TARGETED_DEVICE_FAMILY = 2
+appstore: remove_debug_pods update_bundle_version set_git_properties change_version_to_date</p>
+
+<p>next: TARGETED_DEVICE_FAMILY = \"1,2\"
+next: update_bundle_version set_git_properties change_version_to_date</p>
+
+<p>distribute:
+  cat $(CHANGELOG) | head -n 50 | awk '{ print } END { print "..." }' > $(CHANGELOG_SHORT)
+  curl \
+   -F status=2 \
+   -F notify=$(NOTIFY) \
+   -F "notes=&lt;$(CHANGELOG_SHORT)" \
+   -F notes_type=1 \
+   -F ipa=@$(IPA) \
+   -F dsym=@$(DSYM) \
+   -H 'X-HockeyAppToken: $(HOCKEYAPP_TOKEN)' \
+   https://rink.hockeyapp.net/api/2/apps/upload \
+   | grep -v "errors"</p>
+
+<pre><code>
+That gives you a sense of the commands that you can run from the terminal in our projects, next we need to look at the `.travis.yml` file.
+
+``` make
+language: objective-c
+cache:
+  - bundler
+  - cocoapods
+
+env:
+  - UPLOAD_IOS_SNAPSHOT_BUCKET_NAME=eigen-ci UPLOAD_IOS_SNAPSHOT_BUCKET_PR...
+
+before_install:
+  - 'echo ''gem: --no-ri --no-rdoc'' &gt; ~/.gemrc'
+  - cp .netrc ~
+  - chmod 600 .netrc
+  - pod repo add artsy https://github.com/artsy/Specs.git
+
+before_script:
+  - gem install second_curtain
+  - make ci
+
+script:
+  - make test
+  - make lint
+</code></pre>
+
+<p>This is nice and simple. It was built to use multiple travis build steps. This makes the CI output a lot more readable as an end user. Travis will by default collapse the shell output for different build stages leaving only the <code>script</code> stage defaulting to being exposed. Here is an example of what you see on a failing test:</p>
+
+<center>
+<img src="http://artsy.github.io/images/2014-08-08-CocoaPods-Caching/failing_travis_screenshot.png" alt='Travis CI Failure'>
+</center>
+
+
+<p>We use a gem with a binary in <a href="https://github.com/AshFurrow/second_curtain/">second_curtain</a>, and this came with bundler caching issues in Travis. The solution was to ignore bundler and run <code>gem install second_curtain</code> each time. To increase the speed we also ensured that documentation is not being generated. If you are interested in what's going on with the <code>.netrc</code>, read my blog post on <a href="http://artsy.github.io/blog/2014/06/20/artsys-first-closed-source-pod/">Artsy's first Closed Source Pod</a>.</p>
+
+<p>We will continue pushing the state of the art in iOS deployment, in building our own tools and using everything available to increase developer happiness. If you're into this we're always looking to hire people with a good open source track record or street smarts. Here's <a href="https://artsy.net/job/mobile-engineer">the jobs page</a>.</p>
 ]]></content>
   </entry>
   
   <entry>
-    <title type="html"><![CDATA[Musical Chairs]]></title>
-    <link href="http://artsy.github.io/blog/2013/03/29/musical-chairs/"/>
-    <updated>2013-03-29T16:38:00-04:00</updated>
-    <id>http://artsy.github.io/blog/2013/03/29/musical-chairs</id>
-    <content type="html"><![CDATA[<p> At Artsy we make Artsy Folio. Folio is an awesome portfolio app that shows our gallery and museum partners their artworks in one place, allows them to easily get information about their inventory and to send works by email to their contacts.</p>
+    <title type="html"><![CDATA[Taking a Snapshot with Second Curtain]]></title>
+    <link href="http://artsy.github.io/blog/2014/08/07/taking-a-snapshot-with-second-curtain/"/>
+    <updated>2014-08-07T11:46:00-04:00</updated>
+    <id>http://artsy.github.io/blog/2014/08/07/taking-a-snapshot-with-second-curtain</id>
+    <content type="html"><![CDATA[<p>At Artsy, we try hard to <a href="https://speakerdeck.com/orta/getting-eigen-out?slide=35">test</a>
+our iOS applications to ensure that we avoid regressions and have a clearly
+defined spec of how our apps should look and behave. One of the core pieces of
+our testing setup is <a href="https://github.com/facebook/ios-snapshot-test-case">FBSnapshotTestCase</a>,
+a library written by Facebook to compare views at runtime with images of those
+views that are known to be correct. If the images differ, the test fails. We
+also use <a href="https://travis-ci.org">Travis</a> for continuous integration.</p>
 
-<p>Folio has to deal with large multi-gigabyte syncs in order to operate offline. That makes for a great user experience, but for the developer working on the sync, it's not as pleasant. Combined with our use of Core Data, the app’s maturity, and dealing with data store migrations, things can get hairy. We needed a tool that could freeze and restore app data at will, obviating the need for constant syncing and resyncing.</p>
-
-<p>That's why I built <a href="https://github.com/orta/chairs">chairs</a>...</p>
-
-<!--more-->
-
-
-<p>Chairs is a gem you can install via <code>gem install chairs</code>. It allows you to stash and replace your current iOS simulator application state. It will grab everything related to the app ( including the current <code>NSUserDefaults</code>) and store it in a named subfolder in your current working directory. No black magic, just lots of copying files.</p>
-
-<p>The command line interface is based on git, so to bring in the current state you run <code>chairs pull [name]</code> and to replace the state you use <code>chairs push [name]</code>. The name is just a label so you can remember which version corresponds to that musical chair. You can get a list of these by doing <code>chairs list</code>, and delete them with <code>chairs rm [name]</code>.</p>
-
-<p>Besides the core functionality, chairs has a little bit of sugar to help you with related tasks. My personal favourite is <code>chairs open</code>; this will just open the folder of the most recently used app so you can go and have a snoop around. Amazing for making sure files are where they say they are or for opening your sqlite database in <a href="http://menial.co.uk/base/">Base</a>.</p>
-
-<p>So <code>gem install chairs</code> or check out the <a href="https://github.com/orta/chairs">README</a> for some more information.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[The perils of iOS user agent strings]]></title>
-    <link href="http://artsy.github.io/blog/2012/10/18/the-perils-of-ios-user-agent-sniffing/"/>
-    <updated>2012-10-18T15:19:00-04:00</updated>
-    <id>http://artsy.github.io/blog/2012/10/18/the-perils-of-ios-user-agent-sniffing</id>
-    <content type="html"><![CDATA[<p>There is a great deal of misinformation on the web about detecting an
-iPad or an iPhone in JavaScript. The
-<a href="http://stackoverflow.com/a/4617648">top answer on stackoverflow</a> -
-and many <a href="http://www.sitepoint.com/identify-apple-iphone-ipod-ipad-visitors/">blog posts</a> using <a href="http://www.askdavetaylor.com/detect_apple_iphone_user_web_site_server.html">this technique</a> - are all incorrect.</p>
-
-<p>The conventional wisdom is that iOS devices have a user agent for
-Safari and a user agent for the UIWebView. This assumption is
-incorrect as iOS apps can and do
-<a href="http://stackoverflow.com/a/8666438">customize their user agent</a>. The
-main offender here is Facebook, whose iOS app alone accounts for about
-1-3% of Artsy's daily traffic.</p>
-
-<p>Compare these user agent strings from iOS devices:
-```</p>
-
-<h1>iOS Safari</h1>
-
-<p>iPad: Mozilla/5.0 (iPad; CPU OS 5_1 like Mac OS X) AppleWebKit/534.46 (KHTML, like Gecko) Version/5.1 Mobile/9B176 Safari/7534.48.3
-iPhone: Mozilla/5.0 (iPhone; CPU iPhone OS 5_0 like Mac OS X) AppleWebKit/534.46 (KHTML, like Gecko) Version/5.1 Mobile/9A334 Safari/7534.48.3</p>
-
-<h1>UIWebView</h1>
-
-<p>iPad: Mozilla/5.0 (iPad; CPU OS 5_1 like Mac OS X) AppleWebKit/534.46 (KHTML, like Gecko) Mobile/98176
-iPhone: Mozilla/5.0 (iPhone; U; CPU iPhone OS 4_1 like Mac OS X; en-us) AppleWebKit/532.9 (KHTML, like Gecko) Mobile/8B117</p>
-
-<h1>Facebook UIWebView</h1>
-
-<p>iPad: Mozilla/5.0 (iPad; U; CPU iPhone OS 5_1_1 like Mac OS X; en_US) AppleWebKit (KHTML, like Gecko) Mobile [FBAN/FBForIPhone;FBAV/4.1.1;FBBV/4110.0;FBDV/iPad2,1;FBMD/iPad;FBSN/iPhone OS;FBSV/5.1.1;FBSS/1; FBCR/;FBID/tablet;FBLC/en_US;FBSF/1.0]
-iPhone: Mozilla/5.0 (iPhone; U; CPU iPhone OS 5_1_1 like Mac OS X; ru_RU) AppleWebKit (KHTML, like Gecko) Mobile [FBAN/FBForIPhone;FBAV/4.1;FBBV/4100.0;FBDV/iPhone3,1;FBMD/iPhone;FBSN/iPhone OS;FBSV/5.1.1;FBSS/2; tablet;FBLC/en_US]
-```</p>
+<p>Lately, we've been noticing a friction between the developers on the iOS team
+and the tools we're using to test our apps: while Travis allows us to easily
+access the logs of test runs, it can only indicate that a snapshot test failed,
+not why it failed. That's because the images that are compared are locked on
+Travis' machine – we cannot access those images, so we can't see the
+differences. This is <em>really</em> promblematic when the tests pass locally but fail
+only on Travis.</p>
 
 <!-- more -->
 
 
-<p>The old way to identify iPhone / iPad in JavaScript:
-<code>javascript
-IS_IPAD = navigator.userAgent.match(/iPad/i) != null;
-IS_IPHONE = navigator.userAgent.match(/iPhone/i) != null) || (navigator.userAgent.match(/iPod/i) != null);
-</code></p>
+<p>A few weeks ago, <a href="http://twitter.com/orta">Orta</a> and I were discussing this
+problem and we came up with a potential solution. Since the images were stored
+on disk on Travis' machine, why not just upload them somewhere we <em>can</em> see
+them? Like an S3 bucket. We could even generate a basic HTML page showing you
+the different test failures.</p>
 
-<p>If you were to go with this approach for detecting iPhone and iPad,
-you would end up with IS_IPHONE <em>and</em> IS_IPAD both being true if a user
-comes from Facebook on an iPad. That could create some odd behavior!</p>
+<p>Time passed and, later on, I had tests passing locally but failing on Travis.
+I saw an opportunity to build something new. I'm not a proficient Ruby developer,
+but I enjoy learning new things, so I decided to create a Ruby gem that could
+fit within our existing testing pipeline. A lot of the structure for the code
+came from an existing gem we already use with Travis, <a href="https://github.com/supermarin/xcpretty">xcpretty</a>.
+With an example of how gems that support iOS testing are written, I was on my
+way to creating my own.</p>
 
-<p>The correct way to identify iPhone / iPad in JavaScript:
-<code>javascript
-IS_IPAD = navigator.userAgent.match(/iPad/i) != null;
-IS_IPHONE = (navigator.userAgent.match(/iPhone/i) != null) || (navigator.userAgent.match(/iPod/i) != null);
-if (IS_IPAD) {
-  IS_IPHONE = false;
-}
-</code></p>
+<p>At first, things were very difficult. While I had contributed small patches to
+existing Ruby projects before, I had never created a brand new one from scratch.
+The existing <a href="http://guides.rubygems.org/make-your-own-gem/">guides</a> were very
+helpful, and I found help from the CocoaPods developers when I had questions
+about things like the arcane semantics of Ruby's <code>require</code> syntax.</p>
 
-<p>We simply declare <code>IS_IPHONE</code> to be <code>false</code> on iPads to cover for the
-bizarre Facebook UIWebView iPad user agent. This is one example of how
-<em>user agent sniffing is unreliable</em>. The more iOS apps that customize
-their user agent, the more issues user agent sniffing will have. If
-you can avoid user agent sniffing (hint: CSS Media Queries), DO
-IT.</p>
+<p>Eventually, I had a working proof-of-concept. Everything seemed ready to go, and
+I prepared to incorporate my new tool, which I called <a href="https://github.com/AshFurrow/second_curtain">Second Curtain</a>,
+into my pull request on the Artsy repo. But there was a problem.</p>
+
+<p>Second Curtain relies on environment variables to get access to the S3 bucket
+where it stores the images. I planned on using Travis' system to <a href="http://docs.travis-ci.com/user/encryption-keys/">encrypt</a>
+those credentials. It turns out, for very good reasons, encrypted environment
+variables are not available on pull requests created on forks of repositories.
+This is a problem because of the way that <a href="http://artsy.github.io/blog/2012/01/29/how-art-dot-sy-uses-github-to-build-art-dot-sy/">Artsy uses GitHub</a>.
+While it's not a problem for a closed-source repository to have (restrictive)
+access to an S3 bucket, it would be irresponsible to expose S3 credentials for
+an open-source project. I'm <a href="https://github.com/AshFurrow/second_curtain/issues/5">working</a>
+on a solution.</p>
+
+<p>Orta helped with the design aspect of the tool; while uploading the images was
+sufficient, we could make the process of seeing the differences between the two
+images even easier. He created a <a href="https://eigen-ci.s3.amazonaws.com/snapshots/2014-08-04--15-47/index.html">HTML page</a>
+that would allow developers to see the before-and-after versions by moving their
+mouse cursor over the different images.</p>
+
+<p><img src="http://static.ashfurrow.com/github/second_curtain.png" alt="Image Diff" /></p>
+
+<p>In the end, I got Second Curtain to work with Artsy's iOS repository and I
+discovered the discrepency between the two images: due to a timezone difference
+between my computer and Travis', a date was being formatted differently. Not a
+difficult thing to fix, but not something I would have ever been able to
+discover had I not been able to see the images side-by-side.</p>
+
+<p>So after all that, one line of Objective-C was changed and the tests passed – my
+pull request was merged. I learnt a lot about how Ruby developers structure
+their code and what tools they use to write software. While I'm happy to return
+to iOS apps for a while, it was a great experience and I'm hoping to bring some
+of the ideas I discovered writing Ruby back to Objective-C.</p>
 ]]></content>
   </entry>
   
   <entry>
-    <title type="html"><![CDATA[On Grid Thumbnails]]></title>
-    <link href="http://artsy.github.io/blog/2012/09/13/on-grid-thumbnails/"/>
-    <updated>2012-09-13T16:40:00-04:00</updated>
-    <id>http://artsy.github.io/blog/2012/09/13/on-grid-thumbnails</id>
-    <content type="html"><![CDATA[<p><img src="http://artsy.github.io/images/2012-09-13-on-grid-thumbnails/grid.jpg"></p>
+    <title type="html"><![CDATA[Aspect-Oriented Programming and ARAnalytics]]></title>
+    <link href="http://artsy.github.io/blog/2014/08/04/aspect-oriented-programming-and-aranalytics/"/>
+    <updated>2014-08-04T14:52:00-04:00</updated>
+    <id>http://artsy.github.io/blog/2014/08/04/aspect-oriented-programming-and-aranalytics</id>
+    <content type="html"><![CDATA[<p>Analytics are common in iOS applications. They help inform our decisions
+about products. Since analytics are so common, Artsy developed a library called
+<a href="https://github.com/orta/ARAnalytics">ARAnalytics</a>. This library provides a
+single interface to many different backend analytics providers, freeing
+developers from having to write code for each of the providers that they're
+using.</p>
 
-<p>Artsy Folio, our free iPad app for Gallery Partners, had been in the App Store for a couple of weeks before the iPad with a Retina display was announced. This had been something we expected internally and felt the application would be ready. We had all our image assets available in <em>@2x</em> versions and an image pipeline that would take scaling into account. With that in mind, we changed our artwork grid view to show a double resolution image. Finally, once we were happy that it worked fine on the simulator, we sent the build off to Apple for review.</p>
+<p>Let's consider a typical view controller on iOS. View controllers on iOS
+represent the glue code between models and views. When a model changes, the view
+controller updates the appearance of the UI. Similarly, when the UI is
+interacted with by the user, the view controller updates the model. This is the
+core of any standard iOS application.</p>
 
-<p>The app passed review, and was Retina-ready before the actual release. But within hours of getting our hands on a real Retina iPad, we had to pull the app. This post will explain why, and what we did to work it out.</p>
-
-<!--more-->
-
-
-<p>Scrolling the grid view was slow. Extremely slow. The reason why wasn't obvious initially, but thanks to digging around using <a href="http://developer.apple.com/library/mac/#documentation/DeveloperTools/Conceptual/InstrumentsUserGuide/Introduction/Introduction.html">Instruments</a>, we saw that a great deal of time was spent in Apple's image processing libraries. This was a strong hint that the problem involved taking the file and getting it to the screen.</p>
-
-<p>In our naiveté, Folio was originally using <code>UIImage</code>'s <code>initWithContentsOfFile:</code> to load (without caching) a jpg from the file system. Once the file was loaded into memory, we displayed it onscreen in an <code>UIImageView.</code> This was fast enough to deal with our small thumbnails of <em>240x240</em> but the moment that you start asking it to pull 3 or 4 <em>480x480</em> jpg files off the filesystem, decompress them and then put them on the screen, you're not going to have a smooth scroll.</p>
-
-<p><img src="http://artsy.github.io/images/2012-09-13-on-grid-thumbnails/thumbnails.jpg"></p>
-
-<p>As we knew that we were looking at an issue with getting images from a file, it made sense to start looking at ways to move image processing off the main thread. This Stack Overflow thread on <a href="http://stackoverflow.com/questions/1815476/cgimage-uiimage-lazily-loading-on-ui-thread-causes-stutter">UIImage lazy loading</a> proved to be an essential start to dealing with our issue. We needed a thread-safe way to get the contents of a file and to pass them through once the images had been decoded. What we needed was <a href="https://gist.github.com/3715588">initImmediateLoadWithContentsOfFile</a>, a thread-safe way to go from a filepath to a <code>UIImage</code>.</p>
-
-<p>Now that we had a way to get an image that was safe to go on a background thread, we gave our grid an <code>NSOperationQueue</code> and created a method to kick off a <code>NSInvocationOperation</code> with our the cell we're looking at and the address it needs to load the thumbnail.</p>
+<p>So let's say that a button is pressed. We'll handle that interaction in a
+method called <code>buttonWasPressed:</code>. We'll want to update our model, but also to
+track the analytics event.</p>
 
 <p>``` objc
-- (void)setImageAsyncAtPath:(NSString <em>)imageAddress forGridCell:(ARImageGridViewCell </em>)cell {
-    NSDictionary <em>operationOptions = @{@"address": imageAddress, @"cell": cell};
-    NSInvocationOperation </em>operation = [[NSInvocationOperation alloc] initWithTarget:self selector:@selector(asyncLoadImage:) object:operationOptions];</p>
+- (void)buttonWasPressed:(id)sender
+{
+    self.model.hearted = YES;</p>
 
-<pre><code>[_operationQueue addOperation:operation];
+<pre><code>[ARAnalytics event:@"hearted"];
 </code></pre>
 
 <p>}
 ```</p>
 
-<p>When we had the simplest implementation of <code>asyncLoadImage</code> we found that scrolling would sometimes result in grid cells displaying the wrong image. It turned out that in the time it took to decode the jpg,  the cell had already been reused for a different artwork. This one totally caught us off guard!</p>
+<p>Simple enough, but consider that the analytics tracking code doesn't fall within
+our definition of a view controller – the button handler just happens to be a
+convenient place to put the tracking code. Also consider that <em>every single</em>
+button handler is going to have to have similar code implemented.</p>
+
+<h2>There has to be a better way.</h2>
+
+<!-- more -->
+
+
+<p><a href="http://twitter.com/steipete">Pete Steinberger</a> and <a href="http://twitter.com/orta">Orta Therox</a>
+were talking and the topic of <a href="http://en.wikipedia.org/wiki/Aspect-oriented_programming">Aspect-Oriented Programming</a>,
+specifically in the context of analytics. AOP takes a look at the different
+<em>conerns</em> of an application – logical, cohesive units of functionality. While
+most programming paradigms, including those used with Objective-C, group and
+encapsulate these concerns, there are some concerns that are "cross-cutting"
+because they are involved through several other concerns.</p>
+
+<p>Analytics is such a cross-cutting concern. That makes it a prime target for
+being abstracted away using AOP. Using <a href="http://albertodebortoli.github.io/blog/2014/03/25/an-aspect-oriented-approach-programming-to-ios-analytics/">another blog post</a>  as an example, we set about <a href="https://github.com/orta/ARAnalytics/pull/74">integrating an AOP-like DSL within ARAnalytics</a>
+that would allow you to define all of your analytics in one spot.</p>
+
+<p>The interface would be simple. When providing your API keys to the various
+backend services you'd like to use with ARAnalytics, you'd also provide a
+dictionary specifying the classes you'd like us to "hook into". Whenever a
+selector from an instance of the given class was invoked, we'd execute the
+analytics event specified in the dictionary.</p>
+
+<p>Since Objective-C has a dynamic runtime, we could have swizzled the instance
+methods on the classes you specified in the dictionary. This gets a little
+tricky and represents a lot of work for us. We could directly swizzle the
+instance methods on the classes in question, but wrapping parameters of variable
+types and in various numbers becomes a chore. If we didn't get it done
+perfectly, we'd risk introducing bugs into the entire application.</p>
+
+<p>I wrote a proof-of-concept of analytics using AOP with <a href="http://reactivecocoa.io">ReactiveCocoa</a>.
+It worked, but was a little hacky since it involved the swizzling of <code>alloc</code>.
+ReactiveCocoa is also a large framework to be included just for the sake of
+analytics. Additionally, its interface exposed ReactiveCocoa's <code>RACTuple</code> class,
+which smells like a leaky abstraction.</p>
+
+<h2>What could we do?</h2>
+
+<p>Well, about the same time, Pete Steinberger open sourced a new framework just
+for AOP called <a href="https://github.com/steipete/Aspects">Aspects</a>. Pete did all the
+difficult work of swizzling methods with variable parameter lists, including
+wrapping primitive parameters in values.</p>
+
+<p>Pete and I worked together to get Aspects working with ARAnalytics, removing our
+dependency on ReactiveCocoa.</p>
+
+<h2>How to Use it</h2>
+
+<p>Using ARAnalytics with the new DSL is super-easy. Just add either <code>ARAnalytics</code>
+or <code>ARAnalytics/DSL</code> to your podfile, specifying a version of at least 2.6. Run
+<code>pod install</code> and you're ready to get started.</p>
+
+<p>Since all of your analytics are going to be specified in one spot, and that spot
+is going to get rather large, I'd recommend creating an Objective-C category on
+your app delegate to set up all of your analytics. Then you can call this
+<code>setupAnalytics</code> method when your app launches.</p>
+
+<p>``` objc</p>
+
+<h1>import "ARAppDelegate.h"</h1>
+
+<p>@interface ARAppDelegate (Analytics)</p>
+
+<ul>
+<li>(void)setupAnalytics;</li>
+</ul>
+
+
+<p>@end</p>
+
+<pre><code>
+``` objc
+
+
+#import &lt;ARAnalytics/DSL.h&gt;
+
+@implementation ARAppDelegate (Analytics)
+
+- (void)setupAnalytics
+{
+    [ARAnalytics setupWithAnalytics:@{
+        /* keys */
+    } configuration:
+    @{
+        ARAnalyticsTrackedEvents: @[
+            @{
+                ARAnalyticsClass: MyViewController.class,
+                ARAnalyticsDetails: @[
+                    @{
+                        ARAnalyticsEventName: @"hearted",
+                        ARAnalyticsSelectorName: NSStringFromSelector(@selector(buttonWasPressed:)),
+                    }
+                ]
+            }
+        ]
+    }];
+}
+
+@end
+</code></pre>
+
+<p>Now our <code>buttonWasPressed:</code> method is <em>very</em> straightforward:</p>
+
+<p><code>objc
+- (void)buttonWasPressed:(id)sender
+{
+    self.model.hearted = YES;
+}
+</code></p>
+
+<p>The view controller is now <em>only</em> responsible for what it should be responsible
+for: mediating interactions between the view and the model. Awesome! Even
+cooler, we can provide fine-grain control over which analytics events are
+invoked and with what properties they are sent with. Let's take a look.</p>
 
 <p>``` objc
-- (void)asyncLoadImage:(NSDictionary <em>)options {
-    @autoreleasepool {
-        NSString </em>address = options[@"address"];
-        ARImageGridViewCell *cell = options[@"cell"];</p>
-
-<pre><code>    // don't load if it's on a different cell
-    if ([cell.imagePath isEqualToString:address]) {
-        UIImage *thumbnail = [[UIImage alloc] initImmediateLoadWithContentsOfFile:address];
-
-        // double check that during the decoding the cell's not been re-used
-        if ([cell.imagePath isEqualToString:address] &amp;&amp; thumbnail) {
-            [cell performSelectorOnMainThread:@selector(setImage:) withObject:thumbnail waitUntilDone:NO];
+[ARAnalytics setupWithAnalytics:@{
+    /<em> keys </em>/
+} configuration:
+@{
+    ARAnalyticsTrackedEvents: @[
+        @{
+            ARAnalyticsClass: MyViewController.class,
+            ARAnalyticsDetails: @[
+                @{
+                    ARAnalyticsEventName: @"hearted",
+                    ARAnalyticsSelectorName: NSStringFromSelector(@selector(buttonWasPressed:)),
+                    ARAnalyticsEventProperties: ^NSDictionary <em>(MyViewController </em>controller, NSArray <em>parameters) {
+                        UIButton </em>button = parameters.firstObject;
+                        NSString <em>buttonTitle = [button titleForState:UIControlStateNormal];
+                        return @{
+                            @"view_title" : controller.title ?: @"",
+                            @"button_title" : buttonTitle ?: @"",
+                        };
+                    },
+                    ARAnalyticsShouldFire: ^BOOL(MyViewController </em>controller, NSArray <em>parameters) {
+                        return /</em> selective disable firing of analytics */;
+                    }
+                }
+            ]
         }
-    }
-}
+    ]
+}];</p>
+
+<p>@end</p>
+
+<pre><code>
+So you see that even though you're defining your analytics once, at application
+startup, you're still able to provide dynamic, per-instance behaviour and event
+properties.
+
+Finally, we've also written support for page views. In a few lines, you can
+have every view controller track its page view with ARAnalytics.
+
+``` objc
+[ARAnalytics setupWithAnalytics:@{
+    /* keys */
+} configuration:
+@{
+    ARAnalyticsTrackedScreens: @[
+        @{
+            ARAnalyticsClass: UIViewController.class,
+            ARAnalyticsDetails: @[ // default selector on iOS is viewDidAppear:
+                @{
+                    ARAnalyticsPageNameKeyPath: @"title"
+                }
+            ]
+        }
+    ]
+}];
+
+@end
 </code></pre>
 
-<p>}
-```</p>
+<p>This code will track a page view with the title the same as the view
+controller's <code>title</code> property, but just like with events you can provide
+fine-grained handling.</p>
 
-<p>This meant we could have our UI thread dealing with scrolling, whilst <a href="https://developer.apple.com/technologies/mac/core.html">Grand Central Dispatch</a> would deal with ensuring the image processing was done asynchronously and as fast as possible.However, this still wasn't enough. We were finding if you scrolled fast enough, you could still see images pop in after the grid cell was visible. For this, we actually went back to the beginning, and made our image pipeline create a <em>120x120</em> thumbnail for each artwork that we use <code>initImmediateLoadWithContentsOfFile</code> to load on the UI thread. This is fast enough to smoothly scroll, and is replaced by the higher resolution image practically instantly.</p>
+<h2>Some Limitations</h2>
 
-<p><img src="http://artsy.github.io/images/2012-09-13-on-grid-thumbnails/hover-thumbnails.jpg"></p>
+<p>There is a <a href="https://github.com/steipete/Aspects/issues/11">limitation</a> on
+Aspects that wasn't fully understood until we used the new AOP approach to
+analytics in the Artsy app. Selectors can only be "hooked into" once per class
+hierarchy. That  means that you cannot create a tracked events for two
+difference view controllers, both on the <code>viewWillAppear:</code> selector. This is a
+temporary limitation while the Aspects library is being worked on. In the mean
+time, you are free to use the <a href="https://github.com/orta/ARAnalytics/tree/ashfurrow-temporary-dsl-fix">original implementation</a>
+with ReactiveCocoa, which doesn't have this limitation and which we are using
+currently.</p>
 
-<p>The rest of the story is pretty straightforward. We wrapped all this up within a few days and got out a version of Folio for the Retina iPad, I ended up doing a talk about the issues involved in doing this in <a href="http://lsx.co/lsxcafe/">Leeds LSxCafé</a>, and you got a blog post out of it.</p>
+<h2>What we Learnt</h2>
+
+<p>AOP is a really cool paradigm that can reduce tight coupling in your code and
+increase your overall level of cohesion. Its applications extend beyond just
+analytics – any time you have a behaviour that's being exhibited in several
+abstractions in your code, you should consider if using AOP to replace that
+behaviour might make for cleaner code and more cohesive abstractions.</p>
+
+<p>Finally, I got to make my first significant contribution to open source at
+Artsy. It was awesome to be able to collaborate with Pete and Orta on this
+project, as well as receive feedback from developers who are already using
+ARAnalytics.</p>
 ]]></content>
   </entry>
   
   <entry>
-    <title type="html"><![CDATA[On Our Objective-C Code Standards]]></title>
-    <link href="http://artsy.github.io/blog/2012/08/14/on-objective-c-code-standards/"/>
-    <updated>2012-08-14T14:23:00-04:00</updated>
-    <id>http://artsy.github.io/blog/2012/08/14/on-objective-c-code-standards</id>
-    <content type="html"><![CDATA[<p>With the release of Xcode 4.4 I've taken a look back at our existing code standards and tried to come up with something that is cleaner and more elegant. Here are a few of the ideas I've been using to modernize the codebase.</p>
+    <title type="html"><![CDATA[Artsy's first closed source Pod]]></title>
+    <link href="http://artsy.github.io/blog/2014/06/20/artsys-first-closed-source-pod/"/>
+    <updated>2014-06-20T17:53:00-04:00</updated>
+    <id>http://artsy.github.io/blog/2014/06/20/artsys-first-closed-source-pod</id>
+    <content type="html"><![CDATA[<p>When I joined Artsy, <a href="http://code.dblock.org">dB</a> pitched me this idea: <em>Open source as default.</em></p>
 
-<h3>Remove private method declarations and use class extensions to add ivars.</h3>
+<p>I took this to heart. I genuinely believe the idea behind the philosophy. It's cool that our real product isn't our implementations on the web or native but the data which powers it - <a href="https://artsy.net/theartgenomeproject">the Art Genome Project</a>. Similarly, I spend a bunch of time <a href="https://github.com/AshFurrow/ARCollectionViewMasonryLayout">on</a> <a href="https://github.com/dblock/ARASCIISwizzle">open</a> <a href="https://github.com/dblock/ios-snapshot-test-case-expecta">sourcing</a> <a href="https://github.com/dblock/ARTiledImageView">solid</a> <a href="https://github.com/dstnbrkr/DRBOperationTree">abstractions</a> <a href="https://github.com/orta/ORSimulatorKeyboardAccessor">from</a> <a href="https://github.com/orta/ORStackView">our</a> <a href="https://github.com/orta/ARAnalytics">apps</a>, always taking the opinion if something is used in more than one place, it should be open sourced.</p>
 
-<p>First to get chopped by the deletion button are private method declarations. After Xcode 4.2 came out we took to using the class extension feature to add private method declarations at the top of implementation files. This was a nice way of keeping private methods out of the header files. Now that the compiler will check for pre-existing method signatures within the same object there's no need to define their interfaces.</p>
+<p>This week I pushed some libraries that were a bit different, read on to find out why.</p>
 
-<!--more-->
+<!-- more -->
 
 
-<p>Occasionally it's necessary for subclass to know about private methods defined by its superclass, so we use a shared category to let them know what they respond to. Like Apple, we also quit using <code>@private</code> in header files.</p>
+<h2>The problem</h2>
 
-<p>Ivars now should go in class extensions, and be prefixed by an underscore. Apple advises that you don't use method names with underscores but encourage underscored variable names. This also can free up method parameters from having ugly names such as anArtwork or aString.</p>
+<p>I was modernizing a section of <a href="http://orta.github.io/#folio-header-unit">Folio</a> that hasn't changed in 2 years to use custom UILabel subclasses consistent with <a href="https://iphone.artsy.net">the Artsy iOS app</a> and realized I was copying and pasting a large amount of code from one app to the other. This got me thinking about ways to keep this code in one place, as we might start another project which needs these same styles soon.</p>
 
-<h3>Use object literals when possible.</h3>
+<h2>The solution</h2>
 
-<p>Object literals are ways of adding syntacitcal sugar to the Objective-C language, they let you access keys and values easily on <code>NSDictionary</code>s and objects in <code>NSArray</code>s. There's no reason to not be using them if you're supporting iOS 4 and above. It's simple a matter of <code>_artworks[2]</code> vs <code>[_artworks objectAtIndex:2]</code>.</p>
+<p>I didn't want to put it on the public CocoaPods Spec Repo, because it's not very relevant to the larger community, but in keeping with our philosophy of "open source by default," I definitely wanted to publish it as an example for others. The most elegant answer was to create our own <a href="https://github.com/artsy/specs">public Specs Repo</a>, which serves as a good reference when people want to know what a private specs repo looks like.</p>
 
-<h3>Dot syntax is OK for non-properties.</h3>
+<p>Like anyone who has tried to modularize a pretty large code-base, it turns out a lot of things were connected together. I couldn't just build my <a href="http://github.com/Artsy/Artsy-UILabels">Artsy+UILabels</a> repo and put everything in there. Instead I had to also build Artsy+UIFonts and <a href="http://github.com/Artsy/Artsy-UIColors">Artsy+UIColors</a>.</p>
 
-<p>OK so, I admit it. I whined when properties came out. It was back in 2007 and the Objective-C was ranked 40th in the world, it's now ranked <a href="http://www.tiobe.com/index.php/paperinfo/tpci/Objective-C.html">3nd most popular programming language.</a> Within timeframe, my opinion on the subject of properties changed also.</p>
+<p>One of the good things about having to build three libraries is that I became very familiar with <code>pod lib create</code>. This is a command for building the scaffolding around a CocoaPod, making it much easier to create something fast. We had been holding off doing a <a href="https://github.com/CocoaPods/pod-template/pull/33">big update</a> to the command because no-one knew what WWDC would bring. Now we know, so I've worked on a new version of the command that programmatically manipulates an example project via <a href="https://github.com/CocoaPods/Xcodeproj">xcodeproj</a>. I've used it in creating all of these libraries. Expect to see it on the CocoaPods blog soon.</p>
 
-<p>Originally when properties came out they exclusively were given the right to use dot notation on objects. This makes sense as they were created to provide public access to ivars which normally you can only access internally using the dot notation. With Xcode 4.3, that also changed. Now, if a method doesn't have any arguments it can be called using dot notation. I'm in favour of using this. For me a good rule of thumb has been if a method returns something, dot notation is OK. For example, <code>_artworksArray.count</code> is fine whilst <code>_parsingOperation.stop</code> isn't.</p>
+<h2>Caveat</h2>
 
-<h3>Keep external code out of your project.</h3>
+<p>I built three libraries, but one of them is unique. I modelled Artsy+UIFonts from <a href="http://kylefuller.co.uk">Kyle Fuller</a>'s <a href="https://github.com/kylef/OpenSans-pod">OpenSans-pod</a>, where the CocoaPod has the font resources and installing it moves them into your project. This is great for a free or open-source font, but would break commercial font licenses. For that reason, we don't have the ability to open source that project. Thus Artsy Mobile's first closed-source library.</p>
 
-<p>External, or vendored code should be kept out of the main body of your code. You can use CocoaPods to keep all that code in check and up-to-date. CocoaPods is a project that aims to be what bundler does for ruby projects, or npm for node. It will deal with your dependancies whilst you can concentrate on your own code. It will create a seperate Xcode project that handles all you dependancies leaving your project only as your own code.</p>
+<p>This is a great example of how you can build a private specs repo, whilst the public-private aspect is not applicable to most companies. I find it to be a nice halfway house between open source as default, and keeping something internal. For more info on setting up your own private specs repos, <a href="http://guides.cocoapods.org/making/private-cocoapods.html">check the guides</a>.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Building the Xcode Plugin Snapshots]]></title>
+    <link href="http://artsy.github.io/blog/2014/06/17/building-the-xcode-plugin-snapshots/"/>
+    <updated>2014-06-17T10:50:00-04:00</updated>
+    <id>http://artsy.github.io/blog/2014/06/17/building-the-xcode-plugin-snapshots</id>
+    <content type="html"><![CDATA[<p>I'm the kind of guy who thinks better tooling means better outcomes. But when good tooling isn't available, it's time to build it yourself. It's this attitude that lead to my work on <a href="http://cocoadocs.org">CocoaDocs.org</a>, and then to <a href="http://cocoapods.org">CocoaPods.org</a> &amp; its documentation.</p>
 
-<h3>Use umbrella imports.</h3>
+<p>We've been trying to apply this to testing, and in order to pull this off I've had to extend Xcode to show off the results of failing tests in a more visual way. To that end, I've extended Xcode to show the results of failing <a href="https://github.com/facebook/ios-snapshot-test-case">view tests</a> in a more visual way by building <a href="https://github.com/orta/snapshots">Snapshots for Xcode</a>.  Let's go through the process of building an Xcode plugin so you can do this too. Screw stability.</p>
 
-<p>To try and keep the amount of noise we have at the top of our implementation files we have started to reduce the number of <code>#import "ARModel.h"</code> lines we use. By creating a <code>Models.h</code> file and having that include all the models it means we can still have a look through the <code>#imports</code> at the top to get an idea of the connections between the objects as that will only show the important imports. These can optionally be moved into your precompiled header files.</p>
+<!-- more -->
 
-<h3>Keep your code clean.</h3>
 
-<p>Whitespace can and does slowly accumulate at the line-endings of your code. You should make sure that the new preference for automatically trimming whitespace is turned on in the text editing section of Xcode's preferences.</p>
+<h2>Getting started</h2>
 
-<h3>IBOutlets should probably go in your class extensions.</h3>
+<p>Lets start of with some Xcode inception. The nicest way to start working on Xcode plugins is to install <a href="http://alcatraz.io">Alcatraz</a> the Xcode plugin package manager:</p>
 
-<p>With modern versions of Xcode, it doesn't matter that your IBOutlets are defined in places other than in headers. As Objective-C developers, we've come a long way from having to repeatedly drag a .h from Xcode to Interface Builder, so maybe it's time to rethink the idea that our interface outlets should be publicly accessible. My opinion is that a controller's views are for the most part a private affair and that if you want to expose their functionality you do it through custom methods in the controller. There are some downsides to this, in that  initially you have to change to the implementation file when using hybrid view when connecting them.</p>
+<pre><code>curl -fsSL https://raw.github.com/supermarin/Alcatraz/master/Scripts/install.sh | sh
+</code></pre>
 
-<p>These decisions have come from internal discussions and from watching many WWDC sessions on the topic. We highly recommend watching the following <a href="https://developer.apple.com/wwdc/">WWDC sessions</a>.</p>
+<p>From Alcatraz you should have <a href="https://github.com/edwardaux/XcodeExplorer">XcodeExplorer</a> installed. This lets you dig through internal notifications and the Xcode view heriarchy for debugging. Then you'll want <a href="http://delisa.me">Delisa Mason</a>'s <a href="https://github.com/kattrali/Xcode5-Plugin-Template">Xcode 5 Plugin</a> template which also comes from Alcatraz. Now you can create a new project and pick <em>"Xcode 5 Plugin"</em>. This will do a bunch of the boring work around getting set up on a project, though it misses one bit that to me is essential, setting the Scheme Target. Once setup go to the Scheme editor and make it open Xcode as the target.</p>
 
-<p>  <a href="https://developer.apple.com/videos/wwdc/2011/">WWDC 2011</a>: 105 Polishing Your App, 112 Writing Easy To Change Code and 322 - Objective-C Advancements in Depth.</p>
+<p><img src="/images/2014-06-17-building-the-xcode-plugin-snapshots/scheme.png" alt="Go set you target dangit" /></p>
 
-<p>  <a href="https://developer.apple.com/videos/wwdc/2012/">WWDC 2012</a>: 405 Modern Objective-C and 413 Migrating to Modern Objective-C</p>
+<p>This means that when you do <code>cmd + r</code> on your project it will open a new instance of Xcode with your plugin installed, making the dev cycle for a plugin as simple as a normal OS X app. From here I can't tell you how to build your plugin. It's just normal development, however I can offer some general advice:</p>
+
+<ul>
+<li>When you see a class you don't know, google it, chances are Luis Solano has you covered with <a href="https://github.com/luisobo/Xcode-RuntimeHeaders">Xcode-RuntimeHeaders</a>.</li>
+<li>Use id with fake class interfaces to get around having the headers for Xcode's classes.</li>
+<li>Avoid 3rd party dependencies as much as possible as all plugin classes are in the same runtime.</li>
+<li>A lot of work is done in notifications, so it's easy to hook in to state changes.</li>
+<li>Swizzle as little as possible</li>
+<li>Wrap code you're not 100% on with <code>@try {} @catch {}</code> once it's working to crash elegantly</li>
+<li>Look at the source code of other plugins</li>
+<li>Read <a href="https://github.com/kattrali/Xcode5-Plugin-Template#notes">the notes</a> on the Xcode5 Plugin Template</li>
+</ul>
+
+
+<h2>Releasing</h2>
+
+<p>Next up you want to get it on Alcatraz, this is just a pull request to the <a href="https://github.com/supermarin/alcatraz-packages">alcatraz-packages repo</a>, it's like the old days of CocoaPods! Then you have a plugin, and people will always be using the master HEAD version of your plugin, so be wary around putting unstable code on that branch.</p>
+
+<p>It's easy to forget that if you build apps you have all the tools you need to improve your workflow, one improvement that saves you an hour today could save thousands of human-hours once it's out in the community.</p>
 ]]></content>
   </entry>
   
