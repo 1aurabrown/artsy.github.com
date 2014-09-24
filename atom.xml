@@ -4,7 +4,7 @@
   <title><![CDATA[Artsy Engineering]]></title>
   <link href="http://artsy.github.io/atom.xml" rel="self"/>
   <link href="http://artsy.github.io/"/>
-  <updated>2014-09-12T14:10:13-04:00</updated>
+  <updated>2014-09-24T09:27:03-04:00</updated>
   <id>http://artsy.github.io/</id>
   <author>
     <name><![CDATA[Artsy]]></name>
@@ -12,6 +12,289 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Launching a Security Bug Bounty Program at Artsy]]></title>
+    <link href="http://artsy.github.io/blog/2014/09/24/launching-a-security-bug-bounty-program-at-artsy/"/>
+    <updated>2014-09-24T12:21:00-04:00</updated>
+    <id>http://artsy.github.io/blog/2014/09/24/launching-a-security-bug-bounty-program-at-artsy</id>
+    <content type="html"><![CDATA[<p>Many established companies have bug bounty programs, including a recently publicized <a href="http://www.forbes.com/sites/kashmirhill/2014/09/10/bug-bounty-programs">Twitter Bug Bounty</a>. Some use services, such as <a href="https://hackerone.com">HackerOne</a> or <a href="https://bugcrowd.com">BugCrowd</a>. In early September 2014 we quietly launched <a href="https://artsy.net/security">our own Security Bug Bounty</a>. Since then we have fixed 14 issues reported by 15 security researchers and paid $750 in bounty. In the process we have learned a ton and wanted to share some things that would have probably done a little bit differently, knowing what we know now.</p>
+
+<p>In this post I will focus on both technical and non-technical takeaways, and will provide an extensive list of vulnerabilities that should have been dealt with before launching our bug bounty.</p>
+
+<!-- more -->
+
+
+<h2>Before You Begin</h2>
+
+<p>Our security bug bounty program started with an engineer (myself) creating a <a href="https://artsy.net/security">document</a> on our website, largely inspired from other bug bounty programs. Our staff attorney wanted to review and edit it, something that must definitely be done.</p>
+
+<p>A less evident step was to have a conversation with the finance department about whether or not bounty could be paid to individuals living in countries that may have U.S. sanctions imposed on them (see <a href="http://www.treasury.gov/resource-center/faqs/Sanctions/Pages/answer.aspx">What countries do I need to worry about in terms of U.S. sanctions?</a>). We also needed to talk about the terms under which reward payments could be made at all - we now require the individual&#8217;s full name and postal address. Other bounty programs, including <a href="https://bounty.github.com/">Github&#8217;s</a>, require a <a href="http://www.irs.gov/pub/irs-pdf/fw9.pdf">W9</a> for U.S. citizens or a <a href="http://www.irs.gov/pub/irs-pdf/fw8ben.pdf">W8_BEN</a> for non-U.S. citizens before any payment can be made (we may start doing this as well).</p>
+
+<p>Another question raised was regarding budget and how much money I expected to pay. With about $50 a bug I estimated that this program would not exceed about $1,000 in the first few months, with an initial spending spike, because with time bugs would be harder to find. This was the wrong way to think about it - hacking is a skill and better hackers are paid more to spend more time on a single issue. We are now receiving only a fraction of bug reports, but new issues typically required much more effort to engineer. Those cost us more money, proportional to potential reputation loss. To sum this up, I recommend budgeting a fixed quarterly amount and using it as a reference to cap the maximum amount of dollars paid for a single issue.</p>
+
+<p>It should be clear that every dollar of the $1,000 spent each month is worth every penny when you consider having exploitable security vulnerabilities in your production systems.</p>
+
+<h2>Security Bug Bounty Services</h2>
+
+<p>I have looked at the many bug bounty services and were quite impressed with their offerings, their ability to automatically recognize duplicates and to report on a security researcher&#8217;s reputation. However, I didn&#8217;t want to add yet another service in the plethora of services that we already use and wanted to have some brand control. In all honesty I do not know whether rolling out our own was or wasn&#8217;t the best decision, but we&#8217;re getting security bug reports, fixing real issues, and that&#8217;s what matters.</p>
+
+<h2>Full Time Attention Required</h2>
+
+<p>The early days of the bug bounty program needed full time attention from one engineer who knew the entire system very well. This meant reading every report, triaging it as something new or already known, and opening detailed issues in the internal bug tracking systems. We labeled every issue as &#8220;Security Bounty&#8221; and created a &#8220;Security Bounty&#8221; project in Pivotal Tracker for issues that span multiple projects. We also found it useful to keep a Google Docs Spreadsheet to track the individuals reporting issues in a way where you can easily copy-paste all the issues that they have reported into an email to give them an update. <a href="https://docs.google.com/spreadsheets/d/1_Bq0jMImwU_r2-R76d2vqsYPLt9AB02lz2ZowK77yHc/edit?usp=sharing">Here&#8217;s such a blank spreadsheet</a> with some formulas that can instantly tell you how many issues were opened, fixed, etc.</p>
+
+<h2>Communicating the Program to the Team</h2>
+
+<p>After running the program for a week I sent an email with a bit of statistics and explanations to the entire team. The entire e-mail can be found <a href="https://gist.github.com/dblock/5781f9b4931191de42b4">here</a>, and if there&#8217;s one thing you retain from this post, that should be it. The e-mail was extremely well received, highlighting both the importance of explaining all-the-things to the rest of the company and being very transparent about such sensitive issues as security.</p>
+
+<h2>Classes of Bugs</h2>
+
+<p>While we were very diligent about large classes of potential vulnerabilities, such as SQL injections, most issues reported by the independent security researchers were also avoidable and should have been fixed before launching the program. Other issues should have been reviewed and acknowledged as a known, but acceptable risk upfront as well.</p>
+
+<h3>SSL, Secure Cookies and HSTS</h3>
+
+<p>If you let users signup and log-in or enter any personal information, your entire site must run under SSL. We were half way through this transition with some services still open for both SSL and non-SSL requests. Also you must enable <a href="https://scotthelme.co.uk/hsts-the-missing-link-in-tls">HSTS</a>, so that browsers that have visited your site before make an SSL request even if the user typed a non-SSL address, avoiding leaking session data over an insecure connection.</p>
+
+<p>In Rails, HSTS is turned on with <code>config.force_ssl = true</code>. In node.js applications we use <a href="https://github.com/artsy/force-public/blob/master/lib/middleware/hsts.coffee">an HSTS middleware</a> combined with <a href="https://github.com/artsy/force-public/blob/master/lib/middleware/ensure_ssl.coffee">a redirect middleware</a>, but you might also want to check out <a href="https://github.com/evilpacket/helmet">helmet</a>.</p>
+
+<p>Redirecting from HTTP to HTTPS is a compromise, it allows existing non-SSL clients and the myriad of existing links out there to keep functioning, however it exposes users to a potential risk of sending data over a non-encrypted connection, first. This is mitigated by using HSTS and by making sure session cookies carry a <code>secure=true</code> option.</p>
+
+<h3>Clickjacking Vulnerabilities</h3>
+
+<p>Make sure your site is not vulnerable to clickjacking. These attacks rely on loading the target page in an <code>iframe</code>. A simple test is to try to embed your site in the <a href="https://gist.github.com/dblock/8a91f805e97ba2325278">code in this gist</a>.</p>
+
+<p>The standard and very simple fix is to deny framing by using the <code>X-Frame-Options</code> header with a <code>SAMEORIGIN</code> or, better, <code>DENY</code> value. There&#8217;s a rather advanced explanation of this problem and the difference between these two values in an article about <a href="http://webstersprodigy.net/2012/09/13/clickjacking-google">clickjacking Google</a>. This is enabled by default in Rails, and can be turned on in node.js applications with <a href="https://github.com/evilpacket/helmet">helmet</a>.</p>
+
+<h3>Cross-Site Scripting and Content Security Policy</h3>
+
+<p>Spend time looking for Cross-Site Scripting (XSS) vulnerabilities in your code. The majority could have been known by actually attempting to enter JavaScript into the few user inputs that we have and then going to the pages that display that content. Then examine the code for any instances that render raw HTML, usually via <code>!=</code> in Jade templates or HAML. Track down how this data is inputted into the system and check whether these need to really be raw HTML. As a rule of thumb, do not trust the data in your database or data returned from your API, and encode or sanitize HTML when rendering it. We use the <a href="https://github.com/rgrove/sanitize">Sanitize</a> gem in Ruby, as well as a <a href="https://github.com/artsy/force-public/commit/0902c3450a0de60ee2b3e45a08e2dab656b31d86">fix in our open-source front-end</a> for how to deal with this in a node.js app.</p>
+
+<p>Content Security Policy (CSP) also helps prevent cross-site-scripting. You can add a <code>Content-Security-Policy</code> header, or its variations, <code>X-WebKit-CSP</code> and <code>X-Content-Security-Policy</code>.</p>
+
+<h3>Preventing User Abuse</h3>
+
+<p>Log-in as a user, note their session cookie and log the user out. If you can reuse the session cookie in a new browser, your&#8217;re not actually logging users out. This is particularly problematic on public computers and seems to be an issue often exploited by man-in-the-middle malware. To fix this, you must track sessions server-side.</p>
+
+<p>Another similar problem is that all user sessions must be invalidated when a user resets their password. Imagine that you suspect that your account has been compromised, changing a password should make you safe again and the attacker who logged in as you earlier should be logged out. This is something natively supported by many session management implementations, including Devise, by adding a &#8220;salt&#8221; stored with the user record into the session cookie and comparing it after a session is deserialized.</p>
+
+<p>Finally, make sure you either lock accounts or throttle after too many login or password reset attempts.</p>
+
+<p>Another related example is when attackers can spam users with legitimate requests, such as password resets. For example, we didn&#8217;t <a href="https://github.com/artsy/flare/pull/12">restrict how many SMS messages one can send</a> on our iPhone app download landing page. This particular instance had no actual benefit for the attacker, but could have really hurt our reputation. What would you say if a paying customer reported being spammed with anything coming from your company?</p>
+
+<h3>Open Redirect</h3>
+
+<p>Review all HTTP redirects in your applications. A common problem is when you can supply a URI and be redirected to it after, for example, a social login. This, combined with an XSS, would leak your session cookies, so don&#8217;t ever redirect outside of your application. Furthermore, this can be a source of an XSS by itself with data URLs, something I had never seen before.</p>
+
+<h3>Mixed Content</h3>
+
+<p>Make sure the secure (HTTPS) pages aren&#8217;t loading insecure (HTTP) javascript. A man-in-the-middle attack would enable injecting JavaScript into, otherwise, secure pages. Don&#8217;t forget to check your error pages.</p>
+
+<h2>Issues We Won&#8217;t Fix</h2>
+
+<p>We attempt to fix every reported issue, even very small. A single vulnerability may not be a problem in isolation, but may be exploitable in combination with another unknown issue. Still, we want to be able to disagree with the risk assessment of the security researcher. Such issues require a detailed explanation in a well articulated and prepared response, as well as a mention in a list of issues not eligible for bounty in our program&#8217;s description. Here&#8217;re a few examples.</p>
+
+<h3>User Enumeration and Discovery</h3>
+
+<p>Attackers often obtain databases of user e-mails and try to use those on other services with password dictionaries. When users enter the wrong password on login, you&#8217;re supposed to be returning the same error message whether the account exists or not. While that would prevent user enumeration and make password attacks impractical, it&#8217;s terribly unhelpful to the person trying to access your website. Many sites choose not to fix this, including Artsy. After-all, we will eventually have all of the 11 billion people on Artsy and the issue will be moot!</p>
+
+<h3>Cross-Site Request Forgery</h3>
+
+<p>CSRF is a class of attacks that attempt to force a user to execute unwanted actions on a web application in which they are currently authenticated, often without their knowledge. This can be mitigated by ensuring that the action was triggered from a legitimately rendered page within a certain period of time. CSRF was disabled on Artsy following some complicated technical issues related to caching, and is something that would cost us a lot of time and effort to bring back. It&#8217;s a real problem, but not a critical one, so we explicitly list it in our bug bounty rules as ineligible for bounty.</p>
+
+<h3>User Identity</h3>
+
+<p>One of the most frequently reported issues is that we don&#8217;t require e-mail verification, which is by design on Artsy. We used to have email verification, but too many users found it confusing and would never confirm their e-mail addresses. We treat emails as usernames, without any additional level of trust except for manually verified users, something internal to our systems.</p>
+
+<h3>Sender Policy Framework</h3>
+
+<p>Having a Sender Policy Framework (SPF) record increases the chances people will get emails you send. Without one, your email has a greater chance of being marked as Spam. Adding an SPF may not be as simple, especially if you use multiple thirdparty services for delivering e-mail. Furthermore, it might make forwarded e-mails go to spam.</p>
+
+<h2>Acknowledging Security Researchers</h2>
+
+<p>While most security researchers do an amazing job reporting issues, there&#8217;s an unfortunately some number of bounty hunters who will dramatize issues or nag you for bounty payment or swag every other day. Many don&#8217;t understand why it takes two weeks to get paid, why you disagree on their assessment of the problem, or will think that you&#8217;re lying to them when you say a bug has been reported in the past by another security researcher. These are annoying and often discouraging exceptions.</p>
+
+<p>I believe in the need of acknowledging the hard work done by the security researchers by listing their name on our security page, unless they don&#8217;t want to. I want to thank each and every one of them.</p>
+
+<p>I also do believe in the need to increase transparency into your process by listing the general category of issues after they have been fixed. I want users to trust us based on real data rather than on us just saying that we care about users&#8217; security and privacy. I think everyone understands that software has bugs, and I don&#8217;t see any good reason to hide the security ones after they have been fixed.</p>
+
+<h2>In Conclusion and a Word About Education</h2>
+
+<p>A security bug bounty helps our systems be more secure and our users to trust us more. But that alone is not enough. Overtime the complexity of every system increases and the development team grows. We can only succeed at earning our users&#8217; trust if we actually spend time on security as a team. This includes teaching individual contributors how to avoid similar issues or entire classes of problems. I strongly encourage you to make a lot of extra effort to explain exploit vectors to all developers, using the issues reported by the Security Bug Bounty program as a starting point.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Transparent Prerequisite Network Requests with Swift and ReactiveCocoa]]></title>
+    <link href="http://artsy.github.io/blog/2014/09/22/transparent-prerequisite-network-requests/"/>
+    <updated>2014-09-22T11:26:00-04:00</updated>
+    <id>http://artsy.github.io/blog/2014/09/22/transparent-prerequisite-network-requests</id>
+    <content type="html"><![CDATA[<p>Artsy&#8217;s <a href="http://developers.artsy.net">API</a> requires something called an <a href="https://developers.artsy.net/docs/authentication">XApp
+token</a> in order to perform
+requests. The token comes back with an expiry date, after which the token will
+no longer work. A new token will have to be fetched.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="nt">&quot;xapp_token&quot;</span><span class="p">:</span> <span class="s2">&quot;SOME_TOKEN&quot;</span><span class="p">,</span>
+</span><span class='line'>  <span class="nt">&quot;expires_in&quot;</span><span class="p">:</span><span class="s2">&quot;2014-09-19T12:22:21.570Z&quot;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In our previous iOS apps, tragically written in Objective-C, we have a lot of
+code that looks like the following. <code>getXappTokenWithCompletion:</code> checks to
+make sure that there is a valid token. If there is, it invokes the completion
+block immediately. Otherwise, it fetches a token, sets it in a static variable,
+and then invokes the completion block.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="p">[</span><span class="n">ArtsyAPI</span> <span class="n">getXappTokenWithCompletion</span><span class="o">:^</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="n">xappToken</span><span class="p">,</span> <span class="n">NSDate</span> <span class="o">*</span><span class="n">expirationDate</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="p">[</span><span class="n">ArtsyAPI</span> <span class="n">getSomething</span><span class="o">:^</span><span class="p">(</span><span class="n">NSDictionary</span> <span class="o">*</span><span class="n">results</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>       <span class="c1">// do something</span>
+</span><span class='line'>    <span class="p">}</span> <span class="n">failure</span><span class="o">:^</span><span class="p">(</span><span class="n">NSError</span> <span class="o">*</span><span class="n">error</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>        <span class="c1">// handle herror</span>
+</span><span class='line'>    <span class="p">}];</span>
+</span><span class='line'><span class="p">}];</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>That&#8217;s kind of ugly. A better approach might be to embed the token-requesting
+logic within the <code>getSomething:</code> method. But that kind of sucks, since we&#8217;d have
+to reproduce that logic for <em>every</em> network-accessing method. If we have ten
+methods, that&#8217;s ten times we need to duplicate that logic.</p>
+
+<p>With our <a href="https://github.com/artsy/eidolon">new app</a> (written in Swift), we&#8217;re
+using a network abstraction layer we&#8217;ve created called <a href="https://github.com/AshFurrow/Moya">Moya</a>.
+Moya sits on top of <a href="https://github.com/Alamofire/Alamofire">Alamofire</a> and
+provides an abstraction for API endpoints. Instead of having ten different
+network-accessing methods, there is only <em>one</em> method to which you pass one of
+the ten different possible <code>enum</code> values. This means you have compile-time
+safety in your networking code, but that&#8217;s not really what we&#8217;re here to talk
+about.</p>
+
+<p>Moya has this cool last-minute closure that it invokes to sign requests, so we
+can sign these requests like this.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="n">var</span> <span class="n">endpointsClosure</span> <span class="o">=</span> <span class="p">{</span> <span class="p">(</span><span class="n">target</span><span class="o">:</span> <span class="n">ArtsyAPI</span><span class="p">,</span> <span class="n">method</span><span class="o">:</span> <span class="n">Moya</span><span class="p">.</span><span class="n">Method</span><span class="p">,</span> <span class="n">parameters</span><span class="o">:</span> <span class="p">[</span><span class="n">String</span><span class="o">:</span> <span class="n">AnyObject</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Endpoint</span><span class="o">&lt;</span><span class="n">ArtsyAPI</span><span class="o">&gt;</span> <span class="k">in</span>
+</span><span class='line'>        <span class="n">let</span> <span class="n">endpoint</span><span class="o">:</span> <span class="n">Endpoint</span><span class="o">&lt;</span><span class="n">ArtsyAPI</span><span class="o">&gt;</span> <span class="o">=</span> <span class="n">Endpoint</span><span class="o">&lt;</span><span class="n">ArtsyAPI</span><span class="o">&gt;</span><span class="p">(</span><span class="n">URL</span><span class="o">:</span> <span class="n">url</span><span class="p">(</span><span class="n">target</span><span class="p">),</span> <span class="n">sampleResponse</span><span class="o">:</span> <span class="p">.</span><span class="n">Success</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="n">target</span><span class="p">.</span><span class="n">sampleData</span><span class="p">),</span> <span class="n">method</span><span class="o">:</span> <span class="n">method</span><span class="p">,</span> <span class="n">parameters</span><span class="o">:</span> <span class="n">parameters</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// Sign all non-XApp token requests</span>
+</span><span class='line'>        <span class="k">switch</span> <span class="n">target</span> <span class="p">{</span>
+</span><span class='line'>        <span class="k">case</span> <span class="p">.</span><span class="n">XApp</span>:
+</span><span class='line'>            <span class="k">return</span> <span class="n">endpoint</span>
+</span><span class='line'>        <span class="nl">default:</span>
+</span><span class='line'>            <span class="k">return</span> <span class="n">endpoint</span><span class="p">.</span><span class="n">endpointByAddingHTTPHeaderFields</span><span class="p">([</span><span class="s">&quot;X-Xapp-Token&quot;</span><span class="o">:</span> <span class="cm">/* global XApp token */</span><span class="p">])</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>    <span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So that&#8217;s kind of cool.</p>
+
+<p>Since there is only <em>one</em> method for accessing the API, we can easily inject
+the token-checking method there. Something like</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="n">public</span> <span class="n">func</span> <span class="nf">XAppRequest</span><span class="p">(</span><span class="n">token</span><span class="o">:</span> <span class="n">ArtsyAPI</span><span class="p">,</span> <span class="n">completion</span><span class="o">:</span> <span class="n">MoyaCompletion</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">if</span> <span class="cm">/* token is valid */</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">moyaProvider</span><span class="p">.</span><span class="n">sharedProvider</span><span class="p">.</span><span class="n">request</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">completion</span><span class="o">:</span> <span class="n">completion</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span class='line'>      <span class="n">moyaProvider</span><span class="p">.</span><span class="n">request</span><span class="p">(</span><span class="n">ArtsyAPI</span><span class="p">.</span><span class="n">XApp</span><span class="p">,</span> <span class="n">completion</span><span class="o">:</span> <span class="p">{</span> <span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">statusCode</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">()</span> <span class="k">in</span>
+</span><span class='line'>          <span class="cm">/* store token somewhere */</span>
+</span><span class='line'>          <span class="n">moyaProvider</span><span class="p">.</span><span class="n">sharedProvider</span><span class="p">.</span><span class="n">request</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">completion</span><span class="o">:</span> <span class="n">completion</span><span class="p">)</span>
+</span><span class='line'>      <span class="p">})</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>That&#8217;s <em>better</em>, but it&#8217;s still kind of ugly. We&#8217;ve got duplicated code in
+there, and we&#8217;re just kind of abstracting away the callback mess; it still
+exists, we just don&#8217;t see if as often.</p>
+
+<p>OK, so what alternative is there? Well, Moya supports a <a href="https://github.com/ReactiveCocoa/ReactiveCocoa">ReactiveCocoa</a>
+extension that uses <em>signals</em> instead of callback closures. Super-cool. So we
+can rewrite our <code>XAppRequest</code> function to be the following.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="n">private</span> <span class="n">func</span> <span class="n">XAppTokenRequest</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">RACSignal</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">let</span> <span class="n">newTokenSignal</span> <span class="o">=</span> <span class="n">moyaProvider</span><span class="p">.</span><span class="n">request</span><span class="p">(</span><span class="n">ArtsyAPI</span><span class="p">.</span><span class="n">XApp</span><span class="p">).</span><span class="n">filterSuccessfulStatusCodes</span><span class="p">().</span><span class="n">mapJSON</span><span class="p">().</span><span class="n">doNext</span><span class="p">({</span> <span class="p">(</span><span class="n">response</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Void</span> <span class="k">in</span>
+</span><span class='line'>        <span class="cm">/* store new token globally */</span>
+</span><span class='line'>    <span class="p">}).</span><span class="n">logError</span><span class="p">().</span><span class="n">ignoreValues</span><span class="p">()</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">let</span> <span class="n">validTokenSignal</span> <span class="o">=</span> <span class="n">RACSignal</span><span class="p">.</span><span class="err">`</span><span class="k">return</span><span class="err">`</span><span class="p">(</span><span class="cm">/* does the token exist and is valid? */</span><span class="p">)</span>
+</span><span class='line'>    <span class="k">return</span> <span class="n">RACSignal</span><span class="p">.</span><span class="err">`</span><span class="k">if</span><span class="err">`</span><span class="p">(</span><span class="n">validTokenSignal</span><span class="p">,</span> <span class="n">then</span><span class="o">:</span> <span class="n">RACSignal</span><span class="p">.</span><span class="n">empty</span><span class="p">(),</span> <span class="err">`</span><span class="k">else</span><span class="err">`</span><span class="o">:</span> <span class="n">newTokenSignal</span><span class="p">)</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">public</span> <span class="n">func</span> <span class="n">XAppRequest</span><span class="p">(</span><span class="n">token</span><span class="o">:</span> <span class="n">ArtsyAPI</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RACSignal</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">return</span> <span class="n">XAppTokenRequest</span><span class="p">().</span><span class="n">then</span><span class="p">({</span> <span class="p">()</span> <span class="o">-&gt;</span> <span class="n">RACSignal</span><span class="o">!</span> <span class="k">in</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">moyaProvider</span><span class="p">.</span><span class="n">request</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">method</span><span class="o">:</span> <span class="n">method</span><span class="p">,</span> <span class="n">parameters</span><span class="o">:</span> <span class="n">parameters</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">})</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Neato. So we have abstracted the &#8220;check if there is a valid token and get one if
+there isn&#8217;t&#8221; into its own private method called <code>XAppTokenRequest</code>. If the token
+exists and is valid, then the function returns <code>RACSignal.empty()</code>, a signal
+which completes immediately. Otherwise, we perform a fetch, which completes
+when the XApp token request is finished.</p>
+
+<p>Then we just need to use <code>then</code> on <code>RACSignal</code> to create a new signal that is
+generated once the <code>XAppTokenRequest</code> signal completes. Since the <code>then</code> closure
+is only invoked once the <code>XAppTokenRequest</code> signal completes, the newly created
+request signal will be generated after the token is set, which is ideal.</p>
+
+<p>All the code above is kind of simplified. That&#8217;s OK, since it&#8217;s just a proof of
+concept. If you want the full code, it&#8217;s all available <a href="https://github.com/artsy/eidolon/blob/1804044dfa8b22d9f765a621a5dbde357440146c/Kiosk/App/ArtsyAPI.swift#L87-L112">on GitHub</a>
+and the conversation surrounding this change is in a <a href="https://github.com/artsy/eidolon/pull/29">merged pull request</a>.</p>
+
+<p>If you have run into this problem and have a different solution, we&#8217;d love to
+hear from you.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Designing the Public Artsy API]]></title>
@@ -3514,508 +3797,6 @@ script:
 <p>The quarantine is no excuse to create tests that fail under realistic conditions. It&#8217;s simply a framework for recognizing and, eventually, fixing or eliminating the problematic tests that inevitably crop up in a complex environment.</p>
 
 <p>Hopefully, our experiment is useful to other teams struggling with unreliable builds. Share any feedback in the comments!</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Rendering on the Server and Client in Node.js]]></title>
-    <link href="http://artsy.github.io/blog/2013/11/30/rendering-on-the-server-and-client-in-node-dot-js/"/>
-    <updated>2013-11-30T22:38:00-05:00</updated>
-    <id>http://artsy.github.io/blog/2013/11/30/rendering-on-the-server-and-client-in-node-dot-js</id>
-    <content type="html"><![CDATA[<p><img src="http://artsy.github.io/images/2013-12-18-rendering-on-the-server-and-client-in-node-dot-js/isomorphic.png" alt="Diagram of Shared Server/Client Architecture" /></p>
-
-<p>At Artsy we&#8217;ve been building <a href="http://nodejs.org/">Node.js</a> applications that share code and rendering between the server and browser. We&#8217;ve seen many benefits from this &#8211; pages load faster, we can optimize SEO, developers are more productive, and JavaScript coding is just an overall better experience.</p>
-
-<p>Today we&#8217;re happy to announce <a href="http://ezeljs.com/">Ezel</a>, our open source boilerplate we use to bootstrap our Node projects and the <a href="https://github.com/artsy/benv">various</a> <a href="https://github.com/artsy/backbone-super-sync">node</a> <a href="https://github.com/artsy/sharify">modules</a> that built up to it.</p>
-
-<p>In his article, <a href="http://nerds.airbnb.com/isomorphic-JavaScript-future-web-apps/"><em>Isomorphic JavaScript: The Future of Web Apps</em></a>, Spike Brehm from AirBnB describes this growing trend well and we&#8217;re excited to be a part of it. In this article I&#8217;ll tell Artsy&#8217;s story of moving from a single monolithic application to modular <a href="http://backbonejs.org/">Backbone</a> apps that run in Node and the browser and consume our external API.</p>
-
-<!-- more -->
-
-
-<h2>Growing Pains</h2>
-
-<p><img src="http://artsy.github.io/images/2013-12-18-rendering-on-the-server-and-client-in-node-dot-js/rails-evolution.png" alt="Evolution of Artsy SOA Diagramm" /></p>
-
-<p>Artsy started as a mostly standard <a href="http://rubyonrails.org/">Rails</a> app almost three years ago. In these beginnings we were wildly productive and owe a lot of props to this great framework. However as time went on we started to deviate from the conventional Rails path until we were hardly leveraging much Rails at all. To support an early iOS app we used <a href="https://github.com/intridea/grape">Grape</a> to build an API. While building our API we wrote a lot of client-side JavaScript and soon integrated <a href="http://backbonejs.org/">Backbone</a> for organization. Eventually we cleanly separated our project into a single page Backbone app talking to our API all on inside of this original repository.</p>
-
-<p>We knew we were outgrowing this monolithic project because we had some clear problems&#8230;</p>
-
-<ul>
-<li>Slow initial page loads because of lacking server-side rendering. Twitter <a href="https://blog.twitter.com/2012/improving-performance-twittercom">describes this problem well</a>.</li>
-<li>Slow following client-side renders because of downloading large asset packages without clear ways to break them up.</li>
-<li>SEO issues like building <a href="https://developers.google.com/webmasters/ajax-crawling/docs/specification">escaped fragment</a> pages in Ruby on the server while our users saw what JavaScript rendered on the client.</li>
-<li>Maintaining duplicated Ruby/JavaScript code such as templates, date libraries, etc.</li>
-<li>Very slow and brittle tests. We had a massive integration test suite consisting of over 3000 <a href="https://github.com/jnicklas/capybara">Capybara</a> tests that took hours to run because we lacked good JavaScript testing tools.</li>
-<li>Poor mobile experience from trying to responsively scale down a large single page app with bloated and unused assets.</li>
-<li>Slow asset compilation, server boot, and general build times. Productivity suffered greatly as more code was added to the same monolithic project.</li>
-</ul>
-
-
-<h2>There&#8217;s Got to Be a Better Way</h2>
-
-<p>A monolithic app that treats it&#8217;s client-side code as a second class citizen was clearly not going to scale. Our poor mobile web experience was a good candidate to try something new. So we started building a separate mobile optimized website (m.artsy.net).</p>
-
-<p>Some goals became clear:</p>
-
-<ul>
-<li>Better client-side tools from JavaScript testing to package managers.</li>
-<li>Share rendering code server/client to reduce duplication and optimize initial page load.</li>
-<li>Flexibility. We needed a way to divide our app into smaller chunks with smaller asset packages.</li>
-</ul>
-
-
-<h2>Choosing Technology</h2>
-
-<p><img src="http://artsy.github.io/images/2013-12-18-rendering-on-the-server-and-client-in-node-dot-js/tech.png" alt="Logos of Browserify, Express, and Backbone" /></p>
-
-<p>Node was a clear choice because it made sharing rendering code server/client possible where other languages and frameworks struggle to do so. There were some existing Node projects that accomplish this such as <a href="http://derbyjs.com/">Derby</a> and <a href="https://github.com/airbnb/rendr">Rendr</a>. However, adopting these had challenges of their own including being difficult to integrate with our API, learning unnecessary conventions, or being early prototypes with lacking documentation.</p>
-
-<p>We wanted an approach that breaks our app into smaller, more flexible, pieces. Not all of Artsy needs to be a thick-client app, or even use much client-side JavaScript at all. Adopting an existing solution and combining most of the server and client into a shared abstraction seemed like an unnecessary black box. After trying many other frameworks we found a combination of lower-level tools to be a clear winner.</p>
-
-<p>We open sourced this combination of tools and patterns into <a href="http://ezeljs.com/">Ezel</a>. Ezel is a light-weight boilerplate project using <a href="http://expressjs.com/">Express</a> and <a href="http://backbonejs.org/">Backbone</a> for structure, and <a href="http://browserify.org/">Browserify</a> to compose modules that can be shared server/client.</p>
-
-<h2>Sharing and Rendering Server/Client</h2>
-
-<p><img src="http://artsy.github.io/images/2013-12-18-rendering-on-the-server-and-client-in-node-dot-js/rendering.png" alt="Diagram of Server + Client Render" /></p>
-
-<p>To share rendering code server/client we had to make sure our templates and objects being passed in to them could work the same server/client.</p>
-
-<h3>Sharing Objects (Backbone Models)</h3>
-
-<p><a href="http://browserify.org/">Browserify</a> lets you write modules that can run in Node or the browser. Since Backbone is able to be required on the server out of the box, it&#8217;s easy to write models and collections that can be required on both sides with Browserify. However, there are two main speed bumps in doing this:</p>
-
-<ol>
-<li><p>Backbone uses AJAX for persistence.</p>
-
-<p>We needed a Backbone.sync adapter that makes HTTP requests server-side, so we wrote one and <a href="https://github.com/artsy/backbone-super-sync">it&#8217;s open sourced.</a></p></li>
-<li><p>Data from the server needed to be shared in modules that are used server/client.</p>
-
-<p>For instance, our API is an external URL stored in an environment variable. We needed to use this variable in a module that will be required on the server and the client with Browserify. <a href="http://backbonejs.org/#FAQ-bootstrap">Bootstrapping data</a> is a common technique to share data from the server by embedding JavaScript in the initial HTML and exposing that data globally to the client. To avoid exposing globals we open sourced a tiny module called <a href="https://github.com/artsy/sharify">sharify</a>.</p></li>
-</ol>
-
-
-<h3>Sharing Templates</h3>
-
-<p>Browserify even lets you share non-JavaScript components server/client using <a href="https://github.com/substack/node-browserify#list-of-source-transforms">transforms</a>. To reuse our <a href="http://jade-lang.com/">jade</a> templates server/client it was a simple matter of using the <a href="https://github.com/OliverJAsh/node-jadeify2">jadeify</a> transform.</p>
-
-<h3>All Together Now</h3>
-
-<p>With templates and models require-able server/client, sharing rendering code became much simpler. Below is an example using the same artwork model and detail template server/client.</p>
-
-<p>Shared Backbone &#8220;Artwork&#8221; model to be required server/client:</p>
-
-<figure class='code'><figcaption><span>models/artwork.js</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">Backbone</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;backbone&#39;</span><span class="p">),</span>
-</span><span class='line'>    <span class="nx">API_URL</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;sharify&#39;</span><span class="p">).</span><span class="nx">data</span><span class="p">.</span><span class="nx">API_URL</span><span class="p">;</span>
-</span><span class='line'>
-</span><span class='line'><span class="nx">module</span><span class="p">.</span><span class="nx">exports</span> <span class="o">=</span> <span class="nx">Artwork</span> <span class="o">=</span> <span class="nx">Backbone</span><span class="p">.</span><span class="nx">Model</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="nx">url</span><span class="o">:</span> <span class="nx">API_URL</span> <span class="o">+</span> <span class="s1">&#39;/api/v1/artwork&#39;</span>
-</span><span class='line'>
-</span><span class='line'><span class="p">});</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Shared partial jade template used server/client:</p>
-
-<figure class='code'><figcaption><span>templates/artwork-details.jade</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class='jade'><span class='line'><span class="nt">h1</span><span class="p">=</span> <span class="n">artwork</span><span class="o">.</span><span class="n">get</span><span class="o">(</span><span class="-Symbol">&#39;artist</span><span class="err">&#39;</span><span class="o">).</span><span class="n">name</span>
-</span><span class='line'><span class="nt">h2</span><span class="p">=</span> <span class="n">artwork</span><span class="o">.</span><span class="n">get</span><span class="o">(</span><span class="-Symbol">&#39;title</span><span class="err">&#39;</span><span class="o">)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Full server-side page template including the partial:</p>
-
-<figure class='code'><figcaption><span>templates/artwork-page.jade</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-</pre></td><td class='code'><pre><code class='jade'><span class='line'><span class="nt">doctype</span> 5
-</span><span class='line'><span class="nt">html</span>
-</span><span class='line'>  <span class="nt">head</span>
-</span><span class='line'>    <span class="nt">title</span> Artsy | <span class="si">#{</span><span class="n">artwork</span><span class="o">.</span><span class="n">get</span><span class="o">(</span><span class="-Symbol">&#39;title</span><span class="err">&#39;</span><span class="o">)</span><span class="si">}</span>
-</span><span class='line'>  <span class="nt">body</span>
-</span><span class='line'>    <span class="nt">include</span> artwork-details
-</span><span class='line'>    <span class="err">!= </span><span class="nt">sharify</span><span class="nc">.script</span>()
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Route handler that uses the model server-side:</p>
-
-<figure class='code'><figcaption><span>app.js</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="c1">//...</span>
-</span><span class='line'><span class="kd">var</span> <span class="nx">Artwork</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;models/artwork.js&#39;</span><span class="p">);</span>
-</span><span class='line'>
-</span><span class='line'><span class="nx">app</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;/artwork/:id&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
-</span><span class='line'>  <span class="k">new</span> <span class="nx">Artwork</span><span class="p">({</span> <span class="nx">id</span><span class="o">:</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span> <span class="p">}).</span><span class="nx">fetch</span><span class="p">({</span>
-</span><span class='line'>    <span class="nx">success</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">artwork</span><span class="p">)</span> <span class="p">{</span>
-</span><span class='line'>      <span class="c1">// Boostrap artwork data into sharify</span>
-</span><span class='line'>      <span class="nx">res</span><span class="p">.</span><span class="nx">locals</span><span class="p">.</span><span class="nx">sharify</span><span class="p">.</span><span class="nx">data</span><span class="p">.</span><span class="nx">ARTWORK_JSON</span> <span class="o">=</span> <span class="nx">artwork</span><span class="p">.</span><span class="nx">toJSON</span><span class="p">();</span>
-</span><span class='line'>      <span class="nx">res</span><span class="p">.</span><span class="nx">render</span><span class="p">(</span><span class="s1">&#39;artwork-page&#39;</span><span class="p">,</span> <span class="p">{</span> <span class="nx">artwork</span><span class="o">:</span> <span class="nx">artwork</span> <span class="p">});</span>
-</span><span class='line'>    <span class="p">}</span>
-</span><span class='line'>  <span class="p">});</span>
-</span><span class='line'><span class="p">});</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Client side code that requires the partial template and model:</p>
-
-<figure class='code'><figcaption><span>client.js</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">Artwork</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;models/artwork.js&#39;</span><span class="p">),</span>
-</span><span class='line'>    <span class="nx">ARTWORK_JSON</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;sharify&#39;</span><span class="p">).</span><span class="nx">data</span><span class="p">.</span><span class="nx">ARTWORK_JSON</span><span class="p">,</span>
-</span><span class='line'>    <span class="nx">detailsTemplate</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;templates/artwork-details.jade&#39;</span><span class="p">);</span>
-</span><span class='line'>
-</span><span class='line'><span class="kd">var</span> <span class="nx">artwork</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Artwork</span><span class="p">(</span><span class="nx">ARTWORK_JSON</span><span class="p">);</span>
-</span><span class='line'><span class="nx">artwork</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;change&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
-</span><span class='line'>  <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">).</span><span class="nx">html</span><span class="p">(</span><span class="nx">detailsTemplate</span><span class="p">({</span> <span class="nx">artwork</span><span class="o">:</span> <span class="nx">artwork</span> <span class="p">}));</span>
-</span><span class='line'><span class="p">});</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<h2>Developer Happiness</h2>
-
-<p><img src="http://artsy.github.io/images/2013-12-18-rendering-on-the-server-and-client-in-node-dot-js/so-much-win.png" alt="Happy Developer Image" /></p>
-
-<p>Not only does sharing code server/client let you easily optimize page rendering for fast page loads, but development becomes a lot nicer because we can reuse server-side JavaScript tools including&#8230;</p>
-
-<h3>Package Managers</h3>
-
-<p>With Browserify we were able to use npm as a package manager for server or client-side dependencies. There are <a href="http://bower.io/">other</a> <a href="http://component.io/">package</a> <a href="http://jamjs.org/">managers</a> for the client-side. However, because we were already using npm (and npm supports git urls), we could usually point to the project hosted on npm or Github without having to fork it.</p>
-
-<p>For projects that don&#8217;t support CommonJS modules (or npm), often one can still use npm and requires like so:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="s2">&quot;devDependencies&quot;</span><span class="err">:</span> <span class="p">{</span>
-</span><span class='line'>  <span class="nt">&quot;zepto&quot;</span><span class="p">:</span> <span class="s2">&quot;git://github.com/madrobby/zepto.git#c074a94f0f26dc946f1c501f5f45d603adada44d&quot;</span>
-</span><span class='line'><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-
-
-<figure class='code'><figcaption><span>client.js</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="c1">// Require the base Zepto library (attaches `Zepto` to window)</span>
-</span><span class='line'><span class="nx">require</span><span class="p">(</span><span class="s1">&#39;zepto/src/zepto.js&#39;</span><span class="p">);</span>
-</span><span class='line'><span class="c1">// Attach Zepto&#39;s plugins</span>
-</span><span class='line'><span class="nx">require</span><span class="p">(</span><span class="s1">&#39;zepto/src/event.js&#39;</span><span class="p">);</span>
-</span><span class='line'><span class="nx">require</span><span class="p">(</span><span class="s1">&#39;zepto/src/detect.js&#39;</span><span class="p">);</span>
-</span><span class='line'><span class="c1">// ....</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<h3>Testing</h3>
-
-<p>Testing is light-years ahead because you can test all of your code in Node headless. I wrote <a href="http://artsy.github.io/blog/2013/06/14/writing-headless-backbone-tests-with-node-dot-js/">an article</a> on this a while back, and now with Browserify it&#8217;s even better.</p>
-
-<p>Models, templates, and other modules that are shared server/client can be required into <a href="http://visionmedia.github.io/mocha/">mocha</a> and tested server-side without extra effort. For more view-like client-side code that depends on DOM APIs, pre-rendered HTML, etc., we open sourced a library called <a href="https://github.com/craigspaeth/benv">benv</a> to help build a fake browser environment in Node for testing.</p>
-
-<h3>Modularity</h3>
-
-<p>We wanted to avoid a monolithic organization that groups code by type such as &#8220;stylesheets&#8221;, &#8220;javascripts&#8221;, &#8220;controllers&#8221;, etc.. Not only is this a maintenance problem as it makes boundaries of your app unclear, but it also affects your users because it encourages grouping assets into large monolithic packages that take a long time to download.</p>
-
-<p>Instead, we borrowed a page from <a href="http://stackoverflow.com/questions/2472984/django-and-project-application-organization">Django</a> and broke up our project into smaller conceptual pieces called &#8220;apps&#8221; (small express sub-applications mounted into the main project) and &#8220;components&#8221; (portions of reusable UI such as a modal widget). This let us easily maintain decoupled segments of our project and build up smaller asset packages through Browserify&#8217;s <code>require</code>s and <a href="http://learnboost.github.io/stylus/docs/import.html">Stylus</a>&#8217; <code>import</code>s. For more details on how this is done please check out <a href="http://ezeljs.com/">Ezel</a>, its <a href="https://github.com/artsy/ezel#project-vs-apps-vs-components">organization</a>, and <a href="https://github.com/artsy/ezel#asset-pipeline">asset pipeline</a> docs.</p>
-
-<p>It&#8217;s also worth noting, to avoid CSS spaghetti we followed a simple convention of name-spacing all of our classes/ids by the app or component name it was a part of. This was inspired by a <a href="http://philipwalton.com/articles/css-architecture/">blog post from Philip Walton</a>.</p>
-
-<h2>Success!</h2>
-
-<p>With this new architecture and set of Node tools we&#8217;ve seen enormous benefits compared to the pains of developing Backbone in a monolithic project with lacking JavaScript tools. Our mobile web experience is much better, we can render more content on the server for SEO and faster page loads, our test/build/deploy cycles went from hours to minutes, our developer on-boarding time went from days to minutes, and overall developer happiness has significantly improved.</p>
-
-<p>It&#8217;s an exciting time to be developing JavaScript apps and we will continue to open source our efforts wherever possible. Thanks and <a href="https://github.com/artsy">follow us on Github</a>!</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Upgrading to Mongoid 4.x]]></title>
-    <link href="http://artsy.github.io/blog/2013/11/07/upgrading-to-mongoid4/"/>
-    <updated>2013-11-07T12:34:00-05:00</updated>
-    <id>http://artsy.github.io/blog/2013/11/07/upgrading-to-mongoid4</id>
-    <content type="html"><![CDATA[<p>I recently went through an exercise of upgrading one of Artsy&#8217;s largest web projects to the current HEAD of Mongoid 4.x. This is going to be a major release with numerous changes and I wanted to flush out bugs before the final version of the ODM is released. All Mongoid changes currently live on <a href="https://github.com/mongoid/mongoid">master</a>.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">gem</span> <span class="s1">&#39;mongoid&#39;</span><span class="p">,</span> <span class="ss">github</span><span class="p">:</span> <span class="s1">&#39;mongoid/mongoid&#39;</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>In the process I&#8217;ve worked on making a few gems compatible with Mongoid 4 and learned a couple of things that should help you make this process smooth for your own applications.</p>
-
-<!-- more -->
-
-
-<h2>Moped::BSON::ObjectId</h2>
-
-<p>Moped&#8217;s BSON implementation has been removed in favor of the MongoDB bson gem 2.0 and higher. All <code>Moped::BSON</code> references must change to <code>BSON</code>. This is rather annoying and forces many libraries to have to fork behavior at runtime.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">module</span> <span class="nn">Mongoid</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">mongoid3?</span>
-</span><span class='line'>    <span class="o">::</span><span class="no">Mongoid</span><span class="o">.</span><span class="n">const_defined?</span> <span class="ss">:Observer</span> <span class="c1"># deprecated in Mongoid 4.x</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">mongoid2?</span>
-</span><span class='line'>    <span class="o">::</span><span class="no">Mongoid</span><span class="o">.</span><span class="n">const_defined?</span> <span class="ss">:Contexts</span> <span class="c1"># deprecated in Mongoid 3.x</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>The <code>mongoid2?</code> implementation is borrowed from <a href="https://github.com/pyromaniac/mongoid_orderable">mongoid_orderable</a> and I wrote the <code>mongoid3?</code> version by parsing the CHANGELOG - observers are deprecated in 4.0.</p>
-
-<p>Now, instead of calling <code>Moped::BSON::ObjectId.legal?(id)</code>, you have to do something like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">if</span> <span class="no">Mongoid</span><span class="o">.</span><span class="n">mongoid3?</span>
-</span><span class='line'>  <span class="ss">Moped</span><span class="p">:</span><span class="ss">:BSON</span><span class="o">::</span><span class="no">ObjectId</span><span class="o">.</span><span class="n">legal?</span> <span class="nb">id</span>
-</span><span class='line'><span class="k">else</span>
-</span><span class='line'>  <span class="ss">BSON</span><span class="p">:</span><span class="ss">:ObjectId</span><span class="o">.</span><span class="n">legal?</span> <span class="nb">id</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Furthermore, you can no longer convert a string into a <code>Moped::BSON::ObjectId(id)</code>, you must explicitly call <code>from_string</code>:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">if</span> <span class="no">Mongoid</span><span class="o">.</span><span class="n">mongoid3?</span>
-</span><span class='line'>  <span class="ss">Moped</span><span class="p">:</span><span class="ss">:BSON</span><span class="o">::</span><span class="no">ObjectId</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
-</span><span class='line'><span class="k">else</span>
-</span><span class='line'>  <span class="ss">BSON</span><span class="p">:</span><span class="ss">:ObjectId</span><span class="o">.</span><span class="n">from_string</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Libraries should then adjust their dependencies on Mongoid and specify <code>&gt;= 3.0</code>, and maybe <code>&lt; 5.0</code>.</p>
-
-<h2>Testing Against Multiple Mongoid Versions</h2>
-
-<p>The <a href="https://github.com/pyromaniac/mongoid_orderable">mongoid-orderable</a> gem has a neat system for testing against all versions of Mongoid with <a href="https://travis-ci.org/">Travis CI</a>. First, the <em>.travis.yml</em> file declares a test matrix that sets <code>MONGOID_VERSION</code>. Note that Mongoid 3.x or newer doesn&#8217;t run with Ruby 1.8.x or 1.9.2.</p>
-
-<figure class='code'><figcaption><span>.travis.yml</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="ss">rvm</span><span class="p">:</span>
-</span><span class='line'>  <span class="o">-</span> <span class="mi">1</span><span class="o">.</span><span class="mi">8</span><span class="o">.</span><span class="mi">7</span>
-</span><span class='line'>  <span class="o">-</span> <span class="mi">1</span><span class="o">.</span><span class="mi">9</span><span class="o">.</span><span class="mi">2</span>
-</span><span class='line'>  <span class="o">-</span> <span class="mi">1</span><span class="o">.</span><span class="mi">9</span><span class="o">.</span><span class="mi">3</span>
-</span><span class='line'>  <span class="o">-</span> <span class="n">ruby</span><span class="o">-</span><span class="n">head</span>
-</span><span class='line'>
-</span><span class='line'><span class="ss">env</span><span class="p">:</span>
-</span><span class='line'>  <span class="o">-</span> <span class="no">MONGOID_VERSION</span><span class="o">=</span><span class="mi">2</span>
-</span><span class='line'>  <span class="o">-</span> <span class="no">MONGOID_VERSION</span><span class="o">=</span><span class="mi">3</span>
-</span><span class='line'>  <span class="o">-</span> <span class="no">MONGOID_VERSION</span><span class="o">=</span><span class="mi">4</span>
-</span><span class='line'>
-</span><span class='line'><span class="ss">matrix</span><span class="p">:</span>
-</span><span class='line'>  <span class="ss">exclude</span><span class="p">:</span>
-</span><span class='line'>    <span class="o">-</span> <span class="ss">rvm</span><span class="p">:</span> <span class="mi">1</span><span class="o">.</span><span class="mi">8</span><span class="o">.</span><span class="mi">7</span>
-</span><span class='line'>      <span class="ss">env</span><span class="p">:</span> <span class="no">MONGOID_VERSION</span><span class="o">=</span><span class="mi">3</span>
-</span><span class='line'>    <span class="o">-</span> <span class="ss">rvm</span><span class="p">:</span> <span class="mi">1</span><span class="o">.</span><span class="mi">8</span><span class="o">.</span><span class="mi">7</span>
-</span><span class='line'>      <span class="ss">env</span><span class="p">:</span> <span class="no">MONGOID_VERSION</span><span class="o">=</span><span class="mi">4</span>
-</span><span class='line'>    <span class="o">-</span> <span class="ss">rvm</span><span class="p">:</span> <span class="mi">1</span><span class="o">.</span><span class="mi">9</span><span class="o">.</span><span class="mi">2</span>
-</span><span class='line'>      <span class="ss">env</span><span class="p">:</span> <span class="no">MONGOID_VERSION</span><span class="o">=</span><span class="mi">3</span>
-</span><span class='line'>    <span class="o">-</span> <span class="ss">rvm</span><span class="p">:</span> <span class="mi">1</span><span class="o">.</span><span class="mi">9</span><span class="o">.</span><span class="mi">2</span>
-</span><span class='line'>      <span class="ss">env</span><span class="p">:</span> <span class="no">MONGOID_VERSION</span><span class="o">=</span><span class="mi">4</span>
-</span><span class='line'>
-</span><span class='line'><span class="ss">services</span><span class="p">:</span> <span class="n">mongodb</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>The library&#8217;s <em>Gemfile</em> locks a different version depending on the environment variable, defaulting to 3.x. You can also test against a very specific version, if you must.</p>
-
-<figure class='code'><figcaption><span>Gemfile</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">source</span> <span class="s2">&quot;http://rubygems.org&quot;</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">gemspec</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">case</span> <span class="n">version</span> <span class="o">=</span> <span class="no">ENV</span><span class="o">[</span><span class="s1">&#39;MONGOID_VERSION&#39;</span><span class="o">]</span> <span class="o">||</span> <span class="s2">&quot;~&gt; 3.1&quot;</span>
-</span><span class='line'><span class="k">when</span> <span class="sr">/4/</span>
-</span><span class='line'>  <span class="n">gem</span> <span class="s2">&quot;mongoid&quot;</span><span class="p">,</span> <span class="ss">:github</span> <span class="o">=&gt;</span> <span class="s1">&#39;mongoid/mongoid&#39;</span>
-</span><span class='line'><span class="k">when</span> <span class="sr">/3/</span>
-</span><span class='line'>  <span class="n">gem</span> <span class="s2">&quot;mongoid&quot;</span><span class="p">,</span> <span class="s2">&quot;~&gt; 3.1&quot;</span>
-</span><span class='line'><span class="k">when</span> <span class="sr">/2/</span>
-</span><span class='line'>  <span class="n">gem</span> <span class="s2">&quot;mongoid&quot;</span><span class="p">,</span> <span class="s2">&quot;~&gt; 2.8&quot;</span>
-</span><span class='line'><span class="k">else</span>
-</span><span class='line'>  <span class="n">gem</span> <span class="s2">&quot;mongoid&quot;</span><span class="p">,</span> <span class="n">version</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<h2>Upgraded Gems</h2>
-
-<p>I used the above method to make a few gems Mongoid 4.x compatible, via the following pull requests.</p>
-
-<ul>
-<li><a href="https://github.com/digitalplaywright/mongoid-slug/pull/146">mongoid-slug</a></li>
-<li><a href="https://github.com/dblock/mongoid-scroll/commit/b67e2867b133cd6bd1b8361ea51409f80ae91ffd">mongoid-scroll</a></li>
-<li><a href="https://github.com/pyromaniac/mongoid_orderable/pull/18">mongoid_orderable</a></li>
-<li><a href="https://github.com/aq1018/mongoid-history/pull/83">mongoid-history</a></li>
-<li><a href="https://github.com/aaw/mongoid_collection_snapshot/pull/5">mongoid_collection_snapshot</a></li>
-<li><a href="https://github.com/joeyAghion/delayed_job_shallow_mongoid/pull/6">delayed_job_shallow_mongoid</a></li>
-</ul>
-
-
-<h2>Upgrading a Rails Project</h2>
-
-<p>If you&#8217;re using Rails, you&#8217;re in for upgrading both Mongoid 4.x and Rails to 4.x. This means you will suffer a lot of pain trying to find compatible versions of various interdependent gems. I suggest locking Rails, Mongoid and ActiveSupport to begin with.</p>
-
-<figure class='code'><figcaption><span>Gemfile</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">gem</span> <span class="s1">&#39;rails&#39;</span><span class="p">,</span> <span class="s1">&#39;4.0.1&#39;</span>
-</span><span class='line'><span class="n">gem</span> <span class="s1">&#39;activesupport&#39;</span><span class="p">,</span> <span class="s1">&#39;4.0.1&#39;</span>
-</span><span class='line'><span class="n">gem</span> <span class="s1">&#39;mongoid&#39;</span><span class="p">,</span> <span class="ss">github</span><span class="p">:</span> <span class="s1">&#39;mongoid/mongoid&#39;</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Bulk search &amp; replace <code>Moped::BSON::ObjectId</code> references.</p>
-
-<p>Calls to <code>inc</code>, <code>set</code> and <code>add_to_set</code> now take hashes, eg. <code>artist.inc(likes_count: 1)</code>.</p>
-
-<p>If you&#8217;re converting Mongoid objects to JSON and seeing data such as <code>{ "$oid" =&gt; "..." }</code> instead of an ID, monkey-patch <code>BSON::ObjectId.as_json</code>. See <a href="https://groups.google.com/forum/#!msg/mongoid/MaXFVw7D_4s/T3sl6Flg428J">this discussion thread</a>.</p>
-
-<figure class='code'><figcaption><span>config/initializers/bson/object_id.rb</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">module</span> <span class="nn">BSON</span>
-</span><span class='line'>  <span class="k">class</span> <span class="nc">ObjectId</span>
-</span><span class='line'>    <span class="k">def</span> <span class="nf">as_json</span><span class="p">(</span><span class="n">options</span> <span class="o">=</span> <span class="p">{})</span>
-</span><span class='line'>      <span class="nb">to_s</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>If you&#8217;re using Warden (including via Devise) and/or rely on session cookies that may contain a user ID, add an implementation for the deprecated <code>Moped::BSON::Document</code>. This will prevent all old cookies from causing a serialization error and logging all those users out.</p>
-
-<figure class='code'><figcaption><span>config/initializers/bson/</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">module</span> <span class="nn">Moped</span>
-</span><span class='line'>  <span class="k">module</span> <span class="nn">BSON</span>
-</span><span class='line'>    <span class="no">ObjectId</span> <span class="o">=</span> <span class="o">::</span><span class="ss">BSON</span><span class="p">:</span><span class="ss">:ObjectId</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="k">class</span> <span class="nc">Document</span> <span class="o">&lt;</span> <span class="no">Hash</span>
-</span><span class='line'>      <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
-</span><span class='line'>        <span class="k">def</span> <span class="nf">deserialize</span><span class="p">(</span><span class="n">io</span><span class="p">,</span> <span class="n">document</span> <span class="o">=</span> <span class="kp">new</span><span class="p">)</span>
-</span><span class='line'>          <span class="n">__bson_load__</span><span class="p">(</span><span class="n">io</span><span class="p">,</span> <span class="n">document</span><span class="p">)</span>
-</span><span class='line'>        <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>        <span class="k">def</span> <span class="nf">serialize</span><span class="p">(</span><span class="n">document</span><span class="p">,</span> <span class="n">io</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
-</span><span class='line'>          <span class="n">document</span><span class="o">.</span><span class="n">__bson_dump__</span><span class="p">(</span><span class="n">io</span><span class="p">)</span>
-</span><span class='line'>        <span class="k">end</span>
-</span><span class='line'>      <span class="k">end</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<h2>Updates</h2>
-
-<p>Please post your updates below and questions to the <a href="https://groups.google.com/forum/#!forum/mongoid">mongoid mailing list</a>. I&#8217;ll update this post up until Mongoid 4.x ships.</p>
 ]]></content>
   </entry>
   

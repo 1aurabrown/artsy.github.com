@@ -347,16 +347,28 @@
         <lastmod>2014-09-12T14:09:04-04:00</lastmod>
     </url>
     <url>
+        <loc>
+            http://artsy.github.io/blog/2014/09/22/transparent-prerequisite-network-requests/
+        </loc>
+        <lastmod>2014-09-24T09:26:49-04:00</lastmod>
+    </url>
+    <url>
+        <loc>
+            http://artsy.github.io/blog/2014/09/24/launching-a-security-bug-bounty-program-at-artsy/
+        </loc>
+        <lastmod>2014-09-24T09:26:49-04:00</lastmod>
+    </url>
+    <url>
         <loc>http://artsy.github.io/about/</loc>
         <lastmod>2014-09-12T13:16:44-04:00</lastmod>
     </url>
     <url>
         <loc>http://artsy.github.io/blog/archives/</loc>
-        <lastmod>2014-09-12T14:09:04-04:00</lastmod>
+        <lastmod>2014-09-24T09:26:49-04:00</lastmod>
     </url>
     <url>
         <loc>http://artsy.github.io/</loc>
-        <lastmod>2014-09-12T14:09:04-04:00</lastmod>
+        <lastmod>2014-09-24T09:26:49-04:00</lastmod>
     </url>
     <url>
         <loc>http://artsy.github.io/open-source/</loc>

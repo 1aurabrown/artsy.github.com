@@ -4,7 +4,7 @@
   <title><![CDATA[Category: iOS | Artsy Engineering]]></title>
   <link href="http://artsy.github.io/blog/categories/ios/atom.xml" rel="self"/>
   <link href="http://artsy.github.io/"/>
-  <updated>2014-09-12T14:10:13-04:00</updated>
+  <updated>2014-09-24T09:27:03-04:00</updated>
   <id>http://artsy.github.io/</id>
   <author>
     <name><![CDATA[Artsy]]></name>
@@ -12,6 +12,130 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Transparent Prerequisite Network Requests with Swift and ReactiveCocoa]]></title>
+    <link href="http://artsy.github.io/blog/2014/09/22/transparent-prerequisite-network-requests/"/>
+    <updated>2014-09-22T11:26:00-04:00</updated>
+    <id>http://artsy.github.io/blog/2014/09/22/transparent-prerequisite-network-requests</id>
+    <content type="html"><![CDATA[<p>Artsy's <a href="http://developers.artsy.net">API</a> requires something called an <a href="https://developers.artsy.net/docs/authentication">XApp
+token</a> in order to perform
+requests. The token comes back with an expiry date, after which the token will
+no longer work. A new token will have to be fetched.</p>
+
+<p><code>json
+{
+    "xapp_token": "SOME_TOKEN",
+    "expires_in":"2014-09-19T12:22:21.570Z"
+}
+</code></p>
+
+<p>In our previous iOS apps, tragically written in Objective-C, we have a lot of
+code that looks like the following. <code>getXappTokenWithCompletion:</code> checks to
+make sure that there is a valid token. If there is, it invokes the completion
+block immediately. Otherwise, it fetches a token, sets it in a static variable,
+and then invokes the completion block.</p>
+
+<p><code>objc
+[ArtsyAPI getXappTokenWithCompletion:^(NSString *xappToken, NSDate *expirationDate) {
+    [ArtsyAPI getSomething:^(NSDictionary *results) {
+       // do something
+    } failure:^(NSError *error) {
+        // handle herror
+    }];
+}];
+</code></p>
+
+<p>That's kind of ugly. A better approach might be to embed the token-requesting
+logic within the <code>getSomething:</code> method. But that kind of sucks, since we'd have
+to reproduce that logic for <em>every</em> network-accessing method. If we have ten
+methods, that's ten times we need to duplicate that logic.</p>
+
+<p>With our <a href="https://github.com/artsy/eidolon">new app</a> (written in Swift), we're
+using a network abstraction layer we've created called <a href="https://github.com/AshFurrow/Moya">Moya</a>.
+Moya sits on top of <a href="https://github.com/Alamofire/Alamofire">Alamofire</a> and
+provides an abstraction for API endpoints. Instead of having ten different
+network-accessing methods, there is only <em>one</em> method to which you pass one of
+the ten different possible <code>enum</code> values. This means you have compile-time
+safety in your networking code, but that's not really what we're here to talk
+about.</p>
+
+<p>Moya has this cool last-minute closure that it invokes to sign requests, so we
+can sign these requests like this.</p>
+
+<pre><code>var endpointsClosure = { (target: ArtsyAPI, method: Moya.Method, parameters: [String: AnyObject]) -&gt; Endpoint&lt;ArtsyAPI&gt; in
+        let endpoint: Endpoint&lt;ArtsyAPI&gt; = Endpoint&lt;ArtsyAPI&gt;(URL: url(target), sampleResponse: .Success(200, target.sampleData), method: method, parameters: parameters)
+
+        // Sign all non-XApp token requests
+        switch target {
+        case .XApp:
+            return endpoint
+        default:
+            return endpoint.endpointByAddingHTTPHeaderFields(["X-Xapp-Token": /* global XApp token */])
+        }
+    }
+</code></pre>
+
+<p>So that's kind of cool.</p>
+
+<p>Since there is only <em>one</em> method for accessing the API, we can easily inject
+the token-checking method there. Something like</p>
+
+<pre><code>public func XAppRequest(token: ArtsyAPI, completion: MoyaCompletion) {
+    if /* token is valid */ {
+        moyaProvider.sharedProvider.request(token, completion: completion)
+    } else {
+        moyaProvider.request(ArtsyAPI.XApp, completion: { (data, statusCode, error) -&gt; () in
+            /* store token somewhere */
+            moyaProvider.sharedProvider.request(token, completion: completion)
+        })
+    }
+}
+</code></pre>
+
+<p>That's <em>better</em>, but it's still kind of ugly. We've got duplicated code in
+there, and we're just kind of abstracting away the callback mess; it still
+exists, we just don't see if as often.</p>
+
+<p>OK, so what alternative is there? Well, Moya supports a <a href="https://github.com/ReactiveCocoa/ReactiveCocoa">ReactiveCocoa</a>
+extension that uses <em>signals</em> instead of callback closures. Super-cool. So we
+can rewrite our <code>XAppRequest</code> function to be the following.</p>
+
+<pre><code>private func XAppTokenRequest() -&gt; RACSignal {
+    let newTokenSignal = moyaProvider.request(ArtsyAPI.XApp).filterSuccessfulStatusCodes().mapJSON().doNext({ (response) -&gt; Void in
+        /* store new token globally */
+    }).logError().ignoreValues()
+
+    let validTokenSignal = RACSignal.`return`(/* does the token exist and is valid? */)
+    return RACSignal.`if`(validTokenSignal, then: RACSignal.empty(), `else`: newTokenSignal)
+}
+
+public func XAppRequest(token: ArtsyAPI) -&gt; RACSignal {
+    return XAppTokenRequest().then({ () -&gt; RACSignal! in
+        return moyaProvider.request(token, method: method, parameters: parameters)
+    })
+}
+</code></pre>
+
+<p>Neato. So we have abstracted the "check if there is a valid token and get one if
+there isn't" into its own private method called <code>XAppTokenRequest</code>. If the token
+exists and is valid, then the function returns <code>RACSignal.empty()</code>, a signal
+which completes immediately. Otherwise, we perform a fetch, which completes
+when the XApp token request is finished.</p>
+
+<p>Then we just need to use <code>then</code> on <code>RACSignal</code> to create a new signal that is
+generated once the <code>XAppTokenRequest</code> signal completes. Since the <code>then</code> closure
+is only invoked once the <code>XAppTokenRequest</code> signal completes, the newly created
+request signal will be generated after the token is set, which is ideal.</p>
+
+<p>All the code above is kind of simplified. That's OK, since it's just a proof of
+concept. If you want the full code, it's all available <a href="https://github.com/artsy/eidolon/blob/1804044dfa8b22d9f765a621a5dbde357440146c/Kiosk/App/ArtsyAPI.swift#L87-L112">on GitHub</a>
+and the conversation surrounding this change is in a <a href="https://github.com/artsy/eidolon/pull/29">merged pull request</a>.</p>
+
+<p>If you have run into this problem and have a different solution, we'd love to
+hear from you.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Using CocoaPods Caching with Travis CI]]></title>
@@ -574,51 +698,6 @@ ARAnalytics.</p>
 <p>I built three libraries, but one of them is unique. I modelled Artsy+UIFonts from <a href="http://kylefuller.co.uk">Kyle Fuller</a>'s <a href="https://github.com/kylef/OpenSans-pod">OpenSans-pod</a>, where the CocoaPod has the font resources and installing it moves them into your project. This is great for a free or open-source font, but would break commercial font licenses. For that reason, we don't have the ability to open source that project. Thus Artsy Mobile's first closed-source library.</p>
 
 <p>This is a great example of how you can build a private specs repo, whilst the public-private aspect is not applicable to most companies. I find it to be a nice halfway house between open source as default, and keeping something internal. For more info on setting up your own private specs repos, <a href="http://guides.cocoapods.org/making/private-cocoapods.html">check the guides</a>.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Building the Xcode Plugin Snapshots]]></title>
-    <link href="http://artsy.github.io/blog/2014/06/17/building-the-xcode-plugin-snapshots/"/>
-    <updated>2014-06-17T10:50:00-04:00</updated>
-    <id>http://artsy.github.io/blog/2014/06/17/building-the-xcode-plugin-snapshots</id>
-    <content type="html"><![CDATA[<p>I'm the kind of guy who thinks better tooling means better outcomes. But when good tooling isn't available, it's time to build it yourself. It's this attitude that lead to my work on <a href="http://cocoadocs.org">CocoaDocs.org</a>, and then to <a href="http://cocoapods.org">CocoaPods.org</a> &amp; its documentation.</p>
-
-<p>We've been trying to apply this to testing, and in order to pull this off I've had to extend Xcode to show off the results of failing tests in a more visual way. To that end, I've extended Xcode to show the results of failing <a href="https://github.com/facebook/ios-snapshot-test-case">view tests</a> in a more visual way by building <a href="https://github.com/orta/snapshots">Snapshots for Xcode</a>.  Let's go through the process of building an Xcode plugin so you can do this too. Screw stability.</p>
-
-<!-- more -->
-
-
-<h2>Getting started</h2>
-
-<p>Lets start of with some Xcode inception. The nicest way to start working on Xcode plugins is to install <a href="http://alcatraz.io">Alcatraz</a> the Xcode plugin package manager:</p>
-
-<pre><code>curl -fsSL https://raw.github.com/supermarin/Alcatraz/master/Scripts/install.sh | sh
-</code></pre>
-
-<p>From Alcatraz you should have <a href="https://github.com/edwardaux/XcodeExplorer">XcodeExplorer</a> installed. This lets you dig through internal notifications and the Xcode view heriarchy for debugging. Then you'll want <a href="http://delisa.me">Delisa Mason</a>'s <a href="https://github.com/kattrali/Xcode5-Plugin-Template">Xcode 5 Plugin</a> template which also comes from Alcatraz. Now you can create a new project and pick <em>"Xcode 5 Plugin"</em>. This will do a bunch of the boring work around getting set up on a project, though it misses one bit that to me is essential, setting the Scheme Target. Once setup go to the Scheme editor and make it open Xcode as the target.</p>
-
-<p><img src="/images/2014-06-17-building-the-xcode-plugin-snapshots/scheme.png" alt="Go set you target dangit" /></p>
-
-<p>This means that when you do <code>cmd + r</code> on your project it will open a new instance of Xcode with your plugin installed, making the dev cycle for a plugin as simple as a normal OS X app. From here I can't tell you how to build your plugin. It's just normal development, however I can offer some general advice:</p>
-
-<ul>
-<li>When you see a class you don't know, google it, chances are Luis Solano has you covered with <a href="https://github.com/luisobo/Xcode-RuntimeHeaders">Xcode-RuntimeHeaders</a>.</li>
-<li>Use id with fake class interfaces to get around having the headers for Xcode's classes.</li>
-<li>Avoid 3rd party dependencies as much as possible as all plugin classes are in the same runtime.</li>
-<li>A lot of work is done in notifications, so it's easy to hook in to state changes.</li>
-<li>Swizzle as little as possible</li>
-<li>Wrap code you're not 100% on with <code>@try {} @catch {}</code> once it's working to crash elegantly</li>
-<li>Look at the source code of other plugins</li>
-<li>Read <a href="https://github.com/kattrali/Xcode5-Plugin-Template#notes">the notes</a> on the Xcode5 Plugin Template</li>
-</ul>
-
-
-<h2>Releasing</h2>
-
-<p>Next up you want to get it on Alcatraz, this is just a pull request to the <a href="https://github.com/supermarin/alcatraz-packages">alcatraz-packages repo</a>, it's like the old days of CocoaPods! Then you have a plugin, and people will always be using the master HEAD version of your plugin, so be wary around putting unstable code on that branch.</p>
-
-<p>It's easy to forget that if you build apps you have all the tools you need to improve your workflow, one improvement that saves you an hour today could save thousands of human-hours once it's out in the community.</p>
 ]]></content>
   </entry>
   
