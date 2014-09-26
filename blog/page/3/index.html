@@ -9,7 +9,7 @@
   <meta name="author" content="Artsy">
 
   
-  <meta name="description" content="At Artsy we&#8217;ve been building Node.js applications that share code and rendering between the server and browser. We&#8217;ve seen many benefits &hellip;">
+  <meta name="description" content="Testing is a critical part of our workflow at Artsy. It gives us confidence to make regular, aggressive enhancements. But anyone who has worked with &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -29,6 +29,10 @@
 <link href="/stylesheets/custom/ie_font.css" type="text/css">
 <![endif]-->
 
+<!--- MathJax Configuration -->
+<script type="text/javascript"
+src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
 
   
   <script type="text/javascript">
@@ -48,13 +52,13 @@
 
 
 <body>
-  
+
   <a href="/">
     <h1 id="lrg-mark">
       <span>Artsy</span>
     </h1>
   </a>
-  
+
   <header id="banner"><hgroup>
   <div id="header">
     <h2>Inspiration from the engineering team at <a href="https://artsy.net">Artsy</a> — Discover, Research, and Collect the World's Best Art Online.</h2>
@@ -62,17 +66,67 @@
 </hgroup>
 
 </header>
-  
+
   <div id="main">
-    <div id="mobile_search">
-      <form action="http://google.com/search" method="get">
-        <input type="hidden" name="q" value="site:artsy.github.io" />
-        <input class="search" type="text" name="q" results="0" placeholder="Search" />
-      </form>
-    </div>
+    
+      <div id="mobile_search">
+        <form action="https://www.google.com/cse" method="get">
+          <input type="hidden" value="010245880960712892902:tnjd4ryb3ci" name="cx" />
+          <input class="search" type="text" name="q" results="0" placeholder="Search" />
+        </form>
+      </div>
+    
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+    <a href="/blog/2014/01/30/isolating-spurious-and-nondeterministic-tests/">
+      <div class="date">
+
+
+
+
+  
+<time datetime="2014-01-30T14:42:00-05:00" pubdate>01/30/14</time></div>
+    
+    
+      <h1 class="entry-title">Isolating Spurious and Nondeterministic Tests</h1>
+
+    
+    </a>
+    
+      <p class="meta">
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Testing is a critical part of our workflow at <a href="https://artsy.net">Artsy</a>. It gives us confidence to make regular, aggressive enhancements. But anyone who has worked with a large, complex test suite has struggled with occasional failures that are difficult to reproduce or fix.</p>
+
+<p>These failures might be due to slight timing differences or lack of proper isolation between tests. Integration tests are particularly thorny, since problems can originate not only in application code, but in the browser, testing tools (e.g., <a href="http://docs.seleniumhq.org/">Selenium</a>), database, network, or external APIs and dependencies.</p>
+
+<h2>The Quarantine</h2>
+
+<p>We&#8217;ve been <a href="http://artsy.github.io/blog/2012/05/15/how-to-organize-over-3000-rspec-specs-and-retry-test-failures/">automatically retrying failed tests</a>, with some success. However, these problems tend to get worse. (If you have 10 tests that each have a 1% chance of failing, roughly 1 in 10 builds will fail. If you have 50, 4 in 10 builds will fail.)</p>
+
+<p>Martin Fowler offers the most compelling thoughts on this topic in <a href="http://martinfowler.com/articles/nonDeterminism.html">Eradicating Non-Determinism in Tests</a>. (Read it, really.) He suggests quarantining problematic tests in a separate suite, so they don&#8217;t block the build pipeline.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2014/01/30/isolating-spurious-and-nondeterministic-tests/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -525,50 +579,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-    <a href="/blog/2013/03/29/musical-chairs/">
-      <div class="date">
-
-
-
-
-  
-<time datetime="2013-03-29T16:38:00-04:00" pubdate>03/29/13</time></div>
-    
-    
-      <h1 class="entry-title">Musical Chairs</h1>
-
-    
-    </a>
-    
-      <p class="meta">
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p> At Artsy we make Artsy Folio. Folio is an awesome portfolio app that shows our gallery and museum partners their artworks in one place, allows them to easily get information about their inventory and to send works by email to their contacts.</p>
-
-<p>Folio has to deal with large multi-gigabyte syncs in order to operate offline. That makes for a great user experience, but for the developer working on the sync, it&#8217;s not as pleasant. Combined with our use of Core Data, the app’s maturity, and dealing with data store migrations, things can get hairy. We needed a tool that could freeze and restore app data at will, obviating the need for constant syncing and resyncing.</p>
-
-<p>That&#8217;s why I built <a href="https://github.com/orta/chairs">chairs</a>&#8230;</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2013/03/29/musical-chairs/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/4/">&larr; Older</a>
@@ -601,6 +611,10 @@
       </li>
     
       <li class="post">
+        <a href="/blog/2014/09/24/using-pattern-recognition-to-automatically-crop-framed-art/">Using Pattern Recognition to Automatically Crop Framed Art</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/09/22/transparent-prerequisite-network-requests/">Transparent Prerequisite Network Requests with Swift and ReactiveCocoa</a>
       </li>
     
@@ -612,20 +626,19 @@
         <a href="/blog/2014/09/05/we-open-sourced-our-isomorphic-javascript-website/">We open sourced our Isomorphic Javascript website</a>
       </li>
     
-      <li class="post">
-        <a href="/blog/2014/08/08/CocoaPods-Caching/">Using CocoaPods Caching with Travis CI</a>
-      </li>
-    
   </ul>
   <a class="archive_link" href="/blog/archives">Blog Archive</a>
 </section>
+
 <section>
   <h1>Search</h1>
-  <form action="http://google.com/search" method="get">
-    <input type="hidden" name="q" value="site:artsy.github.io" />
+  <form action="https://www.google.com/cse" method="get">
+    <input type="hidden" value="010245880960712892902:tnjd4ryb3ci" name="cx" />
     <input class="search" type="text" name="q" results="0" />
   </form>
 </section>
+
+
   
 
 

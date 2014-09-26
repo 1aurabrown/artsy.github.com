@@ -9,7 +9,7 @@
   <meta name="author" content="Artsy">
 
   
-  <meta name="description" content="The first time I released a patch release for Artsy Folio it crashed instantly, on every install. Turns out I didn&#8217;t understand Core Data &hellip;">
+  <meta name="description" content="I&#8217;m the kind of guy who thinks better tooling means better outcomes. But when good tooling isn&#8217;t available, it&#8217;s time to build it &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -29,6 +29,10 @@
 <link href="/stylesheets/custom/ie_font.css" type="text/css">
 <![endif]-->
 
+<!--- MathJax Configuration -->
+<script type="text/javascript"
+src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
 
   
   <script type="text/javascript">
@@ -48,13 +52,13 @@
 
 
 <body>
-  
+
   <a href="/">
     <h1 id="lrg-mark">
       <span>Artsy</span>
     </h1>
   </a>
-  
+
   <header id="banner"><hgroup>
   <div id="header">
     <h2>Inspiration from the engineering team at <a href="https://artsy.net">Artsy</a> — Discover, Research, and Collect the World's Best Art Online.</h2>
@@ -62,17 +66,61 @@
 </hgroup>
 
 </header>
-  
+
   <div id="main">
-    <div id="mobile_search">
-      <form action="http://google.com/search" method="get">
-        <input type="hidden" name="q" value="site:artsy.github.io" />
-        <input class="search" type="text" name="q" results="0" placeholder="Search" />
-      </form>
-    </div>
+    
+      <div id="mobile_search">
+        <form action="https://www.google.com/cse" method="get">
+          <input type="hidden" value="010245880960712892902:tnjd4ryb3ci" name="cx" />
+          <input class="search" type="text" name="q" results="0" placeholder="Search" />
+        </form>
+      </div>
+    
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+    <a href="/blog/2014/06/17/building-the-xcode-plugin-snapshots/">
+      <div class="date">
+
+
+
+
+  
+<time datetime="2014-06-17T10:50:00-04:00" pubdate>06/17/14</time></div>
+    
+    
+      <h1 class="entry-title">Building the Xcode Plugin Snapshots</h1>
+
+    
+    </a>
+    
+      <p class="meta">
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>I&#8217;m the kind of guy who thinks better tooling means better outcomes. But when good tooling isn&#8217;t available, it&#8217;s time to build it yourself. It&#8217;s this attitude that lead to my work on <a href="http://cocoadocs.org">CocoaDocs.org</a>, and then to <a href="http://cocoapods.org">CocoaPods.org</a> &amp; its documentation.</p>
+
+<p>We&#8217;ve been trying to apply this to testing, and in order to pull this off I&#8217;ve had to extend Xcode to show off the results of failing tests in a more visual way. To that end, I&#8217;ve extended Xcode to show the results of failing <a href="https://github.com/facebook/ios-snapshot-test-case">view tests</a> in a more visual way by building <a href="https://github.com/orta/snapshots">Snapshots for Xcode</a>.  Let&#8217;s go through the process of building an Xcode plugin so you can do this too. Screw stability.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2014/06/17/building-the-xcode-plugin-snapshots/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -475,54 +523,6 @@ scientists</a> by Simon Parsons (CUNY), Juan A. Rodriguez-Aguilar (CSIC) and Mar
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-    <a href="/blog/2014/01/30/isolating-spurious-and-nondeterministic-tests/">
-      <div class="date">
-
-
-
-
-  
-<time datetime="2014-01-30T14:42:00-05:00" pubdate>01/30/14</time></div>
-    
-    
-      <h1 class="entry-title">Isolating Spurious and Nondeterministic Tests</h1>
-
-    
-    </a>
-    
-      <p class="meta">
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Testing is a critical part of our workflow at <a href="https://artsy.net">Artsy</a>. It gives us confidence to make regular, aggressive enhancements. But anyone who has worked with a large, complex test suite has struggled with occasional failures that are difficult to reproduce or fix.</p>
-
-<p>These failures might be due to slight timing differences or lack of proper isolation between tests. Integration tests are particularly thorny, since problems can originate not only in application code, but in the browser, testing tools (e.g., <a href="http://docs.seleniumhq.org/">Selenium</a>), database, network, or external APIs and dependencies.</p>
-
-<h2>The Quarantine</h2>
-
-<p>We&#8217;ve been <a href="http://artsy.github.io/blog/2012/05/15/how-to-organize-over-3000-rspec-specs-and-retry-test-failures/">automatically retrying failed tests</a>, with some success. However, these problems tend to get worse. (If you have 10 tests that each have a 1% chance of failing, roughly 1 in 10 builds will fail. If you have 50, 4 in 10 builds will fail.)</p>
-
-<p>Martin Fowler offers the most compelling thoughts on this topic in <a href="http://martinfowler.com/articles/nonDeterminism.html">Eradicating Non-Determinism in Tests</a>. (Read it, really.) He suggests quarantining problematic tests in a separate suite, so they don&#8217;t block the build pipeline.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2014/01/30/isolating-spurious-and-nondeterministic-tests/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/3/">&larr; Older</a>
@@ -555,6 +555,10 @@ scientists</a> by Simon Parsons (CUNY), Juan A. Rodriguez-Aguilar (CSIC) and Mar
       </li>
     
       <li class="post">
+        <a href="/blog/2014/09/24/using-pattern-recognition-to-automatically-crop-framed-art/">Using Pattern Recognition to Automatically Crop Framed Art</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/09/22/transparent-prerequisite-network-requests/">Transparent Prerequisite Network Requests with Swift and ReactiveCocoa</a>
       </li>
     
@@ -566,20 +570,19 @@ scientists</a> by Simon Parsons (CUNY), Juan A. Rodriguez-Aguilar (CSIC) and Mar
         <a href="/blog/2014/09/05/we-open-sourced-our-isomorphic-javascript-website/">We open sourced our Isomorphic Javascript website</a>
       </li>
     
-      <li class="post">
-        <a href="/blog/2014/08/08/CocoaPods-Caching/">Using CocoaPods Caching with Travis CI</a>
-      </li>
-    
   </ul>
   <a class="archive_link" href="/blog/archives">Blog Archive</a>
 </section>
+
 <section>
   <h1>Search</h1>
-  <form action="http://google.com/search" method="get">
-    <input type="hidden" name="q" value="site:artsy.github.io" />
+  <form action="https://www.google.com/cse" method="get">
+    <input type="hidden" value="010245880960712892902:tnjd4ryb3ci" name="cx" />
     <input class="search" type="text" name="q" results="0" />
   </form>
 </section>
+
+
   
 
 
