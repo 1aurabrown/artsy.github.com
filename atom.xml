@@ -4,7 +4,7 @@
   <title><![CDATA[Artsy Engineering]]></title>
   <link href="http://artsy.github.io/atom.xml" rel="self"/>
   <link href="http://artsy.github.io/"/>
-  <updated>2014-09-26T08:43:36-04:00</updated>
+  <updated>2014-11-19T10:17:12-05:00</updated>
   <id>http://artsy.github.io/</id>
   <author>
     <name><![CDATA[Artsy]]></name>
@@ -12,6 +12,362 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[How to Write Great Outage Post-Mortems]]></title>
+    <link href="http://artsy.github.io/blog/2014/11/19/how-to-write-great-outage-post-mortems/"/>
+    <updated>2014-11-19T12:21:00-05:00</updated>
+    <id>http://artsy.github.io/blog/2014/11/19/how-to-write-great-outage-post-mortems</id>
+    <content type="html"><![CDATA[<p>The website is finally back up after crashing hard for 4 hours straight.</p>
+
+<p>Recently AWS decided to <a href="http://aws.amazon.com/blogs/aws/ec2-maintenance-update">reboot a few of your servers for a critical update</a>. It didn&#8217;t seem like it was going to be a big deal, except that the schedule was only accommodating if you were in the Pacific Northwest. The first reboot took out a secondary replica of our MongoDB database. Unfortunately <a href="https://github.com/mongoid/moped/issues/321">the driver handled that poorly</a> and spent the first 400ms of every subsequent HTTP request trying to reconnect to the missing instance. That server came back up, but failed to find its storage volumes because of a human mistake in a past migration and the alerts were mistakenly silenced by someone monitoring the system. A few hours later the primary was being stepped down and rebooted, sending the driver into panic over <a href="https://github.com/mongoid/moped/issues/323">another bug</a>. The site went down.</p>
+
+<p>None of this was obvious while it was happening as the rate of automated alerts grew. Engineers communicated to the team that they are actively focusing on bringing the systems back up. This helped to fend off a large amount of instant messages, e-mails, texts and phone calls from various people on the team that were in the middle of demoing something to a very important prospective customer on the other side of the planet. It was also the middle of the night in New York.</p>
+
+<p>Now that all the systems are back up, lets write a detailed outage post-mortem.</p>
+
+<!-- more -->
+
+
+<h2>Whose Job is It?</h2>
+
+<p>In a small or medium-sized company, the most senior engineering manager, CTO, VP or Head of Engineering should be writing an outage post-mortem. It&#8217;s their job and responsibility to acknowledge, understand and explain what happened. Focusing attention away from the individual contributors allows the team to learn from the mistakes and address the root causes in time without the unnecessary stress or pressure during a crisis.</p>
+
+<h2>Recipients</h2>
+
+<p>The post-mortem audience includes customers, direct reports, peers, the company&#8217;s executive team and often investors. The e-mail may be published on your website, and otherwise goes to the entire team. It&#8217;s critical to bcc everyone. This is the equivalent of a locked thread, avoiding washing the laundry in public: one of the worst possible things to see is when a senior manager replies back pointing an individual who made a mistake, definitely not an email you want accidentally sent to the entire company.</p>
+
+<p>I usually begin my e-mails with <em>Team (on the bcc), &#8230;</em>.</p>
+
+<p>I also bcc myself and label the e-mail &#8220;Outages&#8221;, to be able to easily find the incident history next time around.</p>
+
+<p><img src="http://artsy.github.io/images/2014-11-19-how-to-write-great-outage-post-mortems/header.png" alt="header" /></p>
+
+<h2>Outage Email Subject</h2>
+
+<p>Post-mortem subjects should include a date and a duration. This gets right to the point and offers a summary of the impact.</p>
+
+<p><img src="http://artsy.github.io/images/2014-11-19-how-to-write-great-outage-post-mortems/subject.png" alt="subject" /></p>
+
+<h2>Outage Summary</h2>
+
+<p>The outage e-mail begins with a summary, a slightly expanded version of the subject line. Many people won&#8217;t read the details, so include graphs. These should tell the same story as the description of the outage. I use <a href="http://newrelic.com">NewRelic&#8217;s</a>.</p>
+
+<p><img src="http://artsy.github.io/images/2014-11-19-how-to-write-great-outage-post-mortems/summary.png" alt="summary" /></p>
+
+<h2>What Caused the Outage</h2>
+
+<p>Explain what caused the outage on a timeline. Every incident begins with a specific trigger at a specific time, which often causes some unexpected behavior. For example, our servers were rebooted and we expected them to come back up intact, which didn&#8217;t happen. Furthermore, every incident has a root cause: the reboot itself was trigger, however a bug in the driver caused the actual outage. Finally, there&#8217;re consequences to every incident, the most obvious one is that the site goes down.</p>
+
+<p><img src="http://artsy.github.io/images/2014-11-19-how-to-write-great-outage-post-mortems/cause.png" alt="cause" /></p>
+
+<h2>How was the Outage Resolved</h2>
+
+<p>Now that the timeline of the outage is established, we explain what actions took place to resolve it.</p>
+
+<p><img src="http://artsy.github.io/images/2014-11-19-how-to-write-great-outage-post-mortems/resolution.png" alt="resolution" /></p>
+
+<h2>The Post-Mortem</h2>
+
+<p>The post-mortem answers the single most important question of what could have prevented the outage.</p>
+
+<p><img src="http://artsy.github.io/images/2014-11-19-how-to-write-great-outage-post-mortems/post-mortem.png" alt="post-mortem" /></p>
+
+<h2>Outage History</h2>
+
+<p>To most humans that encounter bugs, it may seem like your systems have failures all the time. It&#8217;s important to educate everyone that an outage is much more than a bug and that it hopefully doesn&#8217;t happen frequently. Provide a history of outages, referencing the last one.</p>
+
+<p><img src="http://artsy.github.io/images/2014-11-19-how-to-write-great-outage-post-mortems/history.png" alt="history" /></p>
+
+<h2>Don&#8217;t Bury It</h2>
+
+<p>A few final words. Despite how painful an outage may have been, the worst thing you can do is to bury it and never properly close the incident in a clear and transparent way. Most humans come together in times of crisis and communication around outage post-mortems, in my experience, has always been met with positive energy, understanding comments, constructive suggestions and numerous offers to help.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Close to the Metal: Debugging Our Hardware Problem]]></title>
+    <link href="http://artsy.github.io/blog/2014/11/18/debugging-our-hardware-problem/"/>
+    <updated>2014-11-18T08:33:00-05:00</updated>
+    <id>http://artsy.github.io/blog/2014/11/18/debugging-our-hardware-problem</id>
+    <content type="html"><![CDATA[<p>For the past few months, Artsy’s mobile team has been working on <a href="https://github.com/artsy/eidolon">Eidolon</a>, a bidding kiosk for Artsy’s auctions platform. While we’ve written a <a href="http://artsy.github.io/blog/2014/11/13/eidolon-retrospective/">retrospective</a> on the process of making Eidolon from the software side of things, we didn’t really touch on how our software is being used.</p>
+
+<!-- more -->
+
+
+<p>For typical iOS applications, you create an archive with Xcode and send it to users via the Internet. Maybe it’s an App Store release that goes to Apple before being downloaded by your users. Maybe it’s a beta release that goes to <a href="http://hockeyapp.net/">Hockey</a> before being downloaded by your users. Maybe it’s an enterprise build that goes to your own servers before being downloaded by your users. In any case, there is one thing in common: your users download the software themselves and run it on their own devices.</p>
+
+<p>Eidolon is different. We develop the software and package it using enterprise distribution and use Hockey to download it to our own iPads. These iPads are managed by the Artsy auctions team at events; they are housed in these nifty little stands which hold the iPad in place and also allow room for the credit card readers.</p>
+
+<p><img src="http://artsy.github.io/images/2014-11-18-debugging-our-hardware-problem/first_auction.jpg" alt="Eidolon at our first auction" /></p>
+
+<p>At our first auction, everything went great – no major glitches or crashes. Awesome!</p>
+
+<p>A few weeks later, on the morning of our second auction, things were no so great. We were having issues with our credit card processor, <a href="https://getcardflight.com">CardFlight</a> and spent a lot of time on the phone with them sorting out the problem. As a precaution, <a href="http://twitter.com/orta">Orta</a> pulled of an extraordinary feat of engineering to produce a manual card entry interface in a matter of hours. The card processing was working, but it would’ve been better to be safe than sorry.</p>
+
+<p>That evening, the auctions team was preparing, and they discovered a problem: <em>some</em> of the Kiosks were experiencing a new problem processing cards. That was strange because earlier that day, the first issue was affecting <em>all</em> kiosks. Because we had had problems earlier that day with CardFlight, we assumed that this new problem was also on their end. We didn’t have time to debug the problem, but the event itself went fine because we had that manual entry interface. However, we definitely needed to find the cause of the problem later.</p>
+
+<p>Orta tried over the next several days to diagnose the issue, but he couldn’t reproduce it at all. Different code, different build settings, different distribution methods – nothing could reproduce the problem.</p>
+
+<p><img src="http://artsy.github.io/images/2014-11-18-debugging-our-hardware-problem/desk.jpg" alt="Debugging the issue" /></p>
+
+<p>Eventually, we decided that the issue must have resolved itself somehow and hopefully wouldn’t pop up again. We simply didn’t have time to keep trying to reproduce a phantom bug.</p>
+
+<p>Fast forward to last night at the <a href="https://artsy.net/feature/ici-benefit-auction-2014">third auction</a> facilitated with Eidolon. We get there, and some of the kiosks are exhibiting the same behaviour, even though our tests earlier in the day didn’t show the problem. We tried over and over again: disassembling a problematic kiosk, discovering it worked outside the housing, then reassembling it to see it no longer working. What could the problem be?</p>
+
+<p>Well, let’s take a look at the kiosks we used last night.</p>
+
+<p><img src="http://artsy.github.io/images/2014-11-18-debugging-our-hardware-problem/housing.jpg" alt="Kiosk housing" /></p>
+
+<p>Notice anything different from our first auction kiosk?</p>
+
+<p>In between the first and second auctions, the white faceplates we had ordered arrived. The auctions team put them on the Kiosks for the second auction, which is when the problem first presented. When Orta tried to reproduce the problem, the iPads he used weren’t in the housings – they were just on his desk.</p>
+
+<p>It turned out that faceplate had some foam to provide resistance against the housing to prevent them from slipping apart. Take a look and see.</p>
+
+<p><img src="http://artsy.github.io/images/2014-11-18-debugging-our-hardware-problem/disassembled.jpg" alt="Kiosk disassembled" /></p>
+
+<p>When the faceplate was slid onto the housing, the foam was catching on the rubber padding of the card reader (which plugs into the headphone jack of the iPad). Sliding the faceplate onto the housing was sometimes pushing the card reader a few millimetres out of the headphone jack, causing our problem.</p>
+
+<p><img src="http://artsy.github.io/images/2014-11-18-debugging-our-hardware-problem/catching.jpg" alt="The problem" /></p>
+
+<p>The solution was simple: tear off the rubber padding from the card reader and cut off some foam from the faceplate.</p>
+
+<p><img src="http://artsy.github.io/images/2014-11-18-debugging-our-hardware-problem/solution.jpg" alt="Our solution" /></p>
+
+<p>After that, the faceplate would slide on without issue and all of the kiosks worked fine. It took some time to disassemble all of the kiosks, but we got it working in time for the auction. Eidolon’s third performance was a success.</p>
+
+<p>As I said earlier, Eidolon is different from typical iOS applications – our experience writing typical apps left us ill-equipped to debug what turned out to be a hardware problem. We learnt that, when reproducing bugs that only happen in production, it’s crucial to reproduce the <em>physical</em> context that the bug is occurring in as closely as possible. We also learnt that jumping to the conclusion that CardFlight was responsible for our issues was, while a natural gut reaction, deserved closer scrutiny when later trying to reproduce the problem.</p>
+
+<p>Our auctions team was happy that we solved the phantom card-swiping problem and our users were none-the-wiser to the hurried use of Allen keys backstage to disassemble and reassmble kiosks. Eidolon, the software that we had poured so much time into, was almost defeated by a errant piece of foam. But we prevailed.</p>
+
+<p><a href="http://www.thebos.co/p/XUJNAY"><img src="http://artsy.github.io/images/2014-11-18-debugging-our-hardware-problem/success.gif" alt="dB, Orta, and Ash" /></a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Developing a Bidding Kiosk for iOS in Swift]]></title>
+    <link href="http://artsy.github.io/blog/2014/11/13/eidolon-retrospective/"/>
+    <updated>2014-11-13T10:00:00-05:00</updated>
+    <id>http://artsy.github.io/blog/2014/11/13/eidolon-retrospective</id>
+    <content type="html"><![CDATA[<p>In the Summer of 2014, we began developing a bidding kiosk for the Artsy auctions platform (code-named <a href="https://github.com/artsy/eidolon">Eidolon</a>). Typically, the iOS team here at Artsy worked on two main apps: a <a href="http://iphone.artsy.net">consumer-facing iPhone app</a> and an iPad app used by art galleries. For Eidolon, we followed <a href="https://artsy.github.io/blog/2012/01/29/how-art-dot-sy-uses-github-to-build-art-dot-sy/">Artsy’s standard practices</a> for building our software and use GitHub issues as our canonical source for bug reports and feature requests. Many of the components used in our apps are <a href="https://github.com/artsy">open source</a>, but the codebases themselves remain in private repositories.</p>
+
+<p>Initial planning for Eidolon began over the Summer. Our designer <a href="http://twitter.com/katarinabatina">Katarina</a> had the main features sketched out. I was scheduled to work on it at first, with <a href="http://twitter.com/orta">Orta</a> and <a href="http://twitter.com/1aurabrown">Laura</a> joining me near the end of the project. We had a rough scope: the app would be able to list artworks at an auction and allow prospective bidders to learn more about these artworks. The user would be able to register to bid and place bids using the Kiosk, including credit card processing for identity-checking.</p>
+
+<!-- more -->
+
+
+<p><img src="http://artsy.github.io/images/2014-11-12-eidolon-retrospective/listings.png" alt="Finished Eidolon App" /></p>
+
+<h2>An Idea</h2>
+
+<p>Orta and I met some friends over a weekend in Austria and, during our drive across the country, discussed the possibility of developing this new iOS app as a completely open source project. We were both excited about the prospect and had the support from <a href="http://twitter.com/dblockdotorg">dB</a> to make it open. There were just some technical issues that would have to be addressed to make the Kiosk app an open source reality. For example, how would we restrict access to the app’s API keys? Developing Eidolon in the open would let us share what we&#8217;ve learned, a value at Artsy, and also allow us to easily ask for help from the community.</p>
+
+<p>We were also together in San Francisco for Apple’s announcement of Swift. Following the announcement, there were lots of small pieces of source code published on the Internet that demonstrated some of Swift’s new features, but a large project didn&#8217;t really exist to show how iOS apps written in Swift don’t have to be moulded by outdated Objective-C traditions.</p>
+
+<p>I wanted to write this app in Swift. After speaking with Orta, he said that as long as we could meet the deadlines, that would be okay. (Since this app uses enterprise distribution instead of the App Store, using beta versions of Xcode wouldn’t be a problem.)</p>
+
+<p>More than just an app written in Swift, I wanted to build this app with functional reactive programming principles in mind. We would be using ReactiveCocoa any place that it made sense. While I had begun using it in our consumer iPhone app, it was mostly replacements of KVO code. This would be a fully “functionally reactive” app, a first for Orta and Laura.</p>
+
+<p>So to summarize: our team embarked on a brand new project, developed in the open, using a new and incomplete language, built using a non-standard approach to functional programming, and using beta versions of Xcode. It was ambitious, but we were excited by the prospect of learning new things. I believed then, and do now, that Swift is the future of iOS development, and we love to be on the cutting edge (Artsy’s iOS apps are often testbeds for new CocoaPods features). There’s also an incredible demand for sample code written in Swift, so having a complete codebase written in Swift early in the language’s lifetime would be a significant contribution to the open source community.</p>
+
+<h2>Getting Started</h2>
+
+<p>The first steps were trivial. We examined our existing approach to iOS development and decided what techniques would be appropriate to use on this new project. Then, we identified tools that we needed to use those techniques. In some cases, existing tools needed to be modified to suit our needs. In other cases, the tools didn’t exist at all and we had to invent them.</p>
+
+<p>Shortly after Swift’s announcement, <a href="http://twitter.com/modocache">Brian Gesiak</a> began work on <a href="https://github.com/Quick/Quick">Quick</a> and <a href="https://github.com/Quick/Nimble">Nimble</a>, a Swift-based testing framework and matchers framework, respectively. We would be able to continue using rspec-like syntax for our unit tests – awesome.</p>
+
+<p>We use continuous integration on our other iOS projects and wanted to do the same for Eidolon. However, our usual CI provider, <a href="https://travis-ci.org">Travis</a>, has historically not supported beta versions of Xcode – our only choice for CI would be Jenkins. With a basic Swift Xcode project in hand, Orta set up Jenkins on a Mac Mini in the Artsy office. This didn’t meet our needs for a few reasons. Primarily, getting the build to work from a command line was difficult with Swift and Xcode 6 – Orta spent quite some time getting it configured. However, we all sorely missed some of the great integrations that Travis provides, particularly with GitHub. During development, we technically did have continuous integration, but it wasn’t leveraged to nearly the degree that it could or should have been.</p>
+
+<p>A large portion of our tests on our other iOS apps rely on <a href="https://github.com/facebook/ios-snapshot-test-case">snapshot tests</a> and we use a <a href="https://github.com/dblock/ios-snapshot-test-case-expecta">set of Expecta matchers for Specta</a> that DB wrote. However, we weren’t using Specta for Eidolon and the matchers we were using wouldn’t work, so I <a href="https://github.com/AshFurrow/Nimble-Snapshots">wrote some new ones</a>. This was great from my perspective, since I didn’t really understand how the under-the-hood of a unit testing framework worked until I wrote the new matchers. It’s been fun and educational to see Quick and Nimble grow as projects. As an early adopter, the Artsy iOS team has been able to provide feedback on its development. This has hopefully helped Quick and Nimble grow in ways that benefitted from real-world use, but by contributing to the project, it also helped us get features we needed faster (you can insert either a “quick” or “swift” pun here as you wish).</p>
+
+<p><img src="http://artsy.github.io/images/2014-11-12-eidolon-retrospective/polaroid.gif" alt="*click*" /></p>
+
+<p>As I neared the beginning of development work on Eidolon, Orta and I discussed how we would want our networking layer to operate. One our our <a href="https://github.com/artsy/eidolon/issues/9">first GitHub issues</a> enumerated the desired features of our new network layer. In summary:</p>
+
+<ul>
+<li>Make it easy to run the app offline</li>
+<li>Treat stubs as a first class citizens</li>
+<li>Allow tests to state that only networking request X is allowed during this test run</li>
+<li>Keep track of current requests and don&#8217;t support dupes</li>
+</ul>
+
+
+<p>These features grew mainly out of frustrations with our ad hoc approach to network testing on our other projects: some tests would rely on stubbed models with populated data while other tests would rely on <a href="https://github.com/AliSoftware/OHHTTPStubs">stubbed network responses</a>.</p>
+
+<p>The result of these conversations was <a href="https://github.com/AshFurrow/Moya">Moya</a>, a networking library that takes advantage of some really cool features in Swift. With some <a href="http://chris.eidhof.nl/posts/typesafe-url-routes-in-swift.html">help from Chris Eidhof</a>, we were able to write a functional-esque network abstraction library on top of <a href="https://github.com/Alamofire/Alamofire">Alamofire</a> that provided compile-time checking for API endpoints. I even wrote an optional ReactiveCocoa-based interface for Moya. This interface does not accept callback closures; instead, it returns a <em>signal</em> that represents the network request. Following <a href="https://github.com/ReactiveCocoa/ReactiveCocoa/blob/4403d84348b30f5ffa05dfcd6317b14e0efecc62/Documentation/FrameworkOverview.md#connections">ReactiveCocoa best-practices</a>, this signal is <em>cold</em>, meaning that until someone subscribes to it (that is, registers their interest in the network request), the request is not fetched. We were even able to write a check for duplicate, in-flight requests and return existing signals.</p>
+
+<p>Combined with the optional ReactiveCocoa extensions, Moya succeeded in addressing all of our needs for Eidolon’s network layer. Additionally, as each project matured, the needs of a full app informed the design and development of Moya.</p>
+
+<p>One final component that had to be addressed before main development could get underway was the issue of API keys. We wanted to have our app accessible to anyone who was interested in it, but limit access to our API keys. Keeping keys secure when they are stored near source code is closely related to the problem of keeping keys secure once an app is compiled. To <a href="http://www.quora.com/How-were-the-Twitter-iPhone-and-Android-OAuth-keys-leaked">quote John Adams</a>, a member of the Twitter Security Team:</p>
+
+<blockquote><p>Putting this in the context of, &#8220;should you be storing keys in software&#8221;, is more appropriate. Many companies do this. It&#8217;s never a good idea.</p></blockquote>
+
+<p>Over the course of a few weeks, Orta solicited some help from CocoaPods contributor <a href="http://twitter.com/segiddins">Samuel Giddins</a> to create <a href="https://github.com/orta/cocoapods-keys">cocoapods-keys</a>. This project is a <a href="http://cocoapods.org">CocoaPods</a> plugin that stores the <em>names</em> of the keys you want to use in a plaintext file in your <code>~/.cocoapods</code> directory. The <em>values</em> of the keys with matching names are stored securely in your OS X keychain. Whenever you run <code>pod install</code>, this plugin generates an obfuscated <code>char</code> array with all of your applications keys mixed up with some other random data. The keys are only un-scrambled at runtime, and the file is ignored by git. Every developer on our team has their own API keys that are stored in their OS X keychains, far away from any git repository. While using this technique by no means guarantees the security of your API keys (a dedicated hacker with a debugger attached to your running app would still be able to retrieve your keys), it’s better than nothing.</p>
+
+<p>We began main work on the project. Orta and I divided the app into two pieces: auction listings and bid fulfillment. We created two separate storyboards that would each encapsulate one of these app components. Orta took fulfillment and I took listings – over the course of Eidolon’s development, we had very few merge conflicts.</p>
+
+<p>We used <a href="https://github.com/paulsamuels/SBConstants">SBConstants</a> to have compile-time safety when referring to storyboard identifiers and we used Swift’s operator overloading to make using these constants <a href="https://github.com/artsy/eidolon/blob/a96763b7ccee9cd35c30079ff4044779d30e999a/Kiosk/App/UIStoryboardSegueExtensions.swift">really easy</a>. For example:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
+</span><span class='line'>    if segue == .LoadAdminWebViewController {
+</span><span class='line'>        // code goes here
+</span><span class='line'>    }
+</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
+
+
+<p></p>
+
+<p>A component that I had not developed before was an admin panel that Orta made. This panel is accessible via a hard-to-accidentally-invoke gesture within the app and is protected by a password to prevent users from accidentally accessing it. The admin panel lets you change core behaviours of the app without recompiling it. For example, the panel is used to change between production and staging.</p>
+
+<p><img src="http://artsy.github.io/images/2014-11-12-eidolon-retrospective/admin.png" alt="Admin Panel" /></p>
+
+<p>Speaking of production and staging, to prevent developers from accidentally placing bids on production and to prevent live users from inadvertently using the staging servers, Orta made a simple badge that would let you know if you were on staging. If you were running in the simulator, it would also alert you if you were running on production. This was great, but wouldn’t prevent someone from accidentally placing bids on the production server while testing on a device. <a href="https://github.com/artsy/eidolon/blob/9181be833459307bb749df2264b3d339b371ee59/Kiosk/Auction%20Listings/ListingsViewController.swift#L157-L169">Our solution</a> was to check your current wifi network name. If it looks like you’re at the Artsy offices, then the production flag is shown, even on a device.</p>
+
+<p>So we’ve got the scaffolding for a great app and it was time to really begin development. Using ReactiveCocoa, we were able to make our <a href="http://artsy.github.io/blog/2014/09/22/transparent-prerequisite-network-requests/">XApp authentication transparent</a>. Functional reactive programming had other great benefits, like <a href="https://github.com/artsy/eidolon/blob/9181be833459307bb749df2264b3d339b371ee59/Kiosk/Auction%20Listings/ListingsViewController.swift#L87-L137">scheduling automated refreshes</a> of auction listings. We may have <a href="https://github.com/artsy/eidolon/blob/9181be833459307bb749df2264b3d339b371ee59/Kiosk/Auction%20Listings/ListingsViewController.swift#L48-L68">gone overboard</a> in one instance (cleaning that up is on my todo list), but ReactiveCocoa has made modelling complex behaviour of Eidolon relatively easy.</p>
+
+<p>Of course, learning how to ReactiveCocoa is no easy feat. At this point, Orta and Laura were both working on Eidolon. There were many conversations in our Slack chatroom about how to approach problem-solving the ReactiveCocoa way and, with some time, they both became proficient at creating and manipulating signals. Sweet.</p>
+
+<p>I’ve often been asked by people who want to use ReactiveCocoa about how to get their team up to speed; until recently, I didn’t have an answer. Now that I’ve done it, I can say that the most important thing is that you realize that you’re going to be responsible for this decision. If another developer needs help using ReactiveCocoa, you’ll be the one that helps them, so take that into consideration when scheduling your work. There were also several occasions where I didn’t know the answers to the questions Orta and Laura had, but the ReactiveCocoa community was there to support us.</p>
+
+<p><img src="http://artsy.github.io/images/2014-11-12-eidolon-retrospective/clap.gif" alt="Finished Eidolon App" /></p>
+
+<p>So what about Swift? I mean, there are other apps out there for iOS 8 and other apps that use ReactiveCocoa – how did we find Swift?</p>
+
+<p>Well, at first it was great. We took our own approach to it, trying out new language features that were unavailable to us in Objective-C. We even did away with the usual comment header that Xcode includes in newly created files – what is that even for?</p>
+
+<p>Progress was slow at first, but Orta and I (Laura was not yet on the project) assumed that was due to our unfamiliarity with the language. Eventually, we became relatively proficient, but our progress was still really slow. Why?</p>
+
+<p>However ready you think the Swift language is (and however much you believe <a href="http://www.apple.com/swift/">Apple’s PR</a> about the language), the reality is that the tools necessary to use Swift are far from ready. During the Xcode 6 betas, we stayed up-to-date in the hopes that newer versions of Xcode would fix our problems. However, after the GMs were released, it became apparent that these problems would just be a reality of working in Swift.</p>
+
+<p>What kind of problems? Certainly there were Xcode crashes, but those were mostly fixed by beta 5. Building the app with enterprise distribution certificates cost us a few days of headaches, sure. And we still can’t compile the app with compiler optimizations without causing a segfault. But what really became the bane of our existence were SourceKit crashes.</p>
+
+<p><img src="http://artsy.github.io/images/2014-11-12-eidolon-retrospective/crash.gif" alt="SourceKit Crash" /></p>
+
+<p>When SourceKit crashes, you temporarily lose autocomplete, syntax highlighting, and the behaviour of the text editor’s shortcut keys changes dramatically. The larger your project, the more often SourceKit crashes. These crashes can last anywhere from a split second to ten seconds or more and can be alleviated using an array of cargo-cult techniques such as:</p>
+
+<ul>
+<li>deleting your derived data folder</li>
+<li>restarting Xcode</li>
+<li>restarting your computer</li>
+<li>restarting the project from scratch using Objective-C</li>
+</ul>
+
+
+<p>It’s really too bad. I’ve been asking for a <a href="http://ashfurrow.com/blog/we-need-to-replace-objective-c/">replacement to Objective-C</a> for a while and, when Swift was announced, I was ecstatic. However, based on our experience using Swift in a full production app, it is our conclusion that Swift is not yet ready for use in production apps unless you are willing to take on unknown risks and delays. As much as I <em>want</em> to like Swift, I can’t make the recommendation that you should use it, even if that’s what I’d like to say. I think that Steve Streza put it best:</p>
+
+<blockquote class="twitter-tweet" lang="en"><p>Objective-C in the streets, Swift in the sheets.</p>&mdash; Steve Streza (@SteveStreza) <a href="https://twitter.com/SteveStreza/status/474069822808915968">June 4, 2014</a></blockquote>
+
+
+<p> <script async src="http://artsy.github.io//platform.twitter.com/widgets.js" charset="utf-8"></script></p>
+
+<p>As we neared our deadline, we realized that we probably weren’t going to make it. This was despite Katarina dropping some features from the “must-have” list. Orta sent out an email to the auctions team letting them know the bad news and we looked at alternatives; none of them suited us. Through some late nights and weekends, and a lot of coffee and tea, the three of us were able to complete the project with only a few hours to spare. It was a herculean effort and I’m incredibly proud to have worked with Orta and Laura to make it a success.</p>
+
+<p>The launch went fairly smoothly, with Orta on-site to assist if necessary. The auction attendees found the software easy to use – one even said that the app made bidding “too easy”, which we are incredibly proud of.</p>
+
+<p><img src="http://artsy.github.io/images/2014-11-12-eidolon-retrospective/launch.jpg" alt="Finished Eidolon App" /></p>
+
+<p>However, this successful launch came at a cost. It was only through some very long hours and a disregard for code longevity that we were able to complete the project on time. Ignoring unit tests was fine at the time, but we now have significant technical debt that we’ll be spending the next few weeks repaying.</p>
+
+<h2>Lessons Learned</h2>
+
+<p>It is completely possible to write an open source iOS application, though we did have to create some tools to help us along the way. These tools are now available for everyone to use, so you should consider opening your next project from the start. We’ve adopted an “open by default” approach where we only keep things closed when we have to, like with our fonts which have restrictive licenses. If your next app isn’t a core part of what makes you you, consider having a conversation about the pros and cons of making it open source.</p>
+
+<p>ReactiveCocoa is <em>really</em> great at networking. It forced us to use some good abstractions that we might have otherwise cut corners on. Orta describes complex signal mapping to be “too magic.” For example, you can probably figure out what the following line of code does:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>RAC(self, "artworks") &lt;~ XAppRequest(.Artworks(auctionID)).filterSuccessfulStatusCodes().mapJSON().catch { (error) -&gt; RACSignal! in
+</span><span class='line'>    println("Error: \(error)")
+</span><span class='line'>    return RACSignal.empty()
+</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Grab some artworks with the auction ID, filter out non-successful status codes, turn the data into JSON, and if anything goes wrong with any of that, log the error and ignore the results. Then bind the result of that operation to the <code>artworks</code> property of <code>self</code>. Nice and easy.</p>
+
+<p>We discovered, as I mentioned earlier, that Swift just isn’t ready for primetime yet. I want it to be, but it was probably a mistake to write the app in Swift. By our projections, it took us about four times longer than we had anticipated to complete the project (in terms of person-hours worked). A lot of that is admittedly due to our own faulty estimates, but a lot more of it is attributable to Swift’s immaturity. In future projects, we’re going to be more mindful about estimation.</p>
+
+<h2>So What Now?</h2>
+
+<p>Swift isn’t ready yet, but we already have an app written in Swift, so what do we do? We could rewrite the whole app in Objective-C, but that would represent a substantial effort with very little reward, considering that the tools surrounding Swift are expected to improve over the coming months and years. We could shift away from Swift, writing all new code in Objective-C, but a lot of the app relies on existing Swift idioms, like Moya’s compile-time safety of API endpoint checking.</p>
+
+<p>So we’re pretty much stuck with Swift, as much as you can be “stuck” with a totally <em>awesome</em> language that just needs some more time to have a mature ecosystem of tools. Swift does, after all, address most of my concerns with Objective-C. It has a lot of features that made developing Eidolon a joy. I’m impressed with what Apple’s made so far, but I’m eagerly waiting for Xcode 6.2 and beyond.</p>
+
+<p>On our other iOS projects, we’ll stick with Objective-C for now, but we’re starting to have conversations around what would be necessary to move to developing those in the open, too. In that respect, Eidolon has been an unqualified success.</p>
+
+<p><img src="http://artsy.github.io/images/2014-11-12-eidolon-retrospective/success.jpg" alt="Success" /></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[How we customized Google Site Search at Artsy]]></title>
+    <link href="http://artsy.github.io/blog/2014/10/23/how-we-customized-google-site-search-at-artsy/"/>
+    <updated>2014-10-23T14:47:00-04:00</updated>
+    <id>http://artsy.github.io/blog/2014/10/23/how-we-customized-google-site-search-at-artsy</id>
+    <content type="html"><![CDATA[<p>This post is about how, in a week, we switched from Solr to <a href="https://support.google.com/customsearch/answer/72326?hl=en">Google Site Search</a> and customized it into a fast, <a href="https://artsy.net/search?q=banksy">beautiful search service</a>. Search is a difficult problem &#8211; a really difficult problem. For small companies and startups, the common solution to search is to launch a custom search service based on <a href="http://lucene.apache.org/solr/">Solr</a> or <a href="http://www.elasticsearch.org/">Elastic Search</a>. While these services are very appropriate for private data, we think Google Site Search should be considered in addition to these services for a public website. It is often not considered because users search on a dedicated site with different intent than they search Google. We found that while this may be true, it is not necessarily a good reason to roll your own search service for your public site.</p>
+
+<p><img src="http://artsy.github.io/images/2014-10-23-how-we-customized-google-site-search-at-artsy/photography-site-search.jpg" alt="Search for photography on artsy" /></p>
+
+<!-- more -->
+
+
+<h2>Why Google Site search?</h2>
+
+<p>While rolling your own search service has the benefits of infinite customizability, it also takes a great deal of time and effort to build and maintain. Generic services such as Google Site Search, not only may solve your user&#8217;s search needs, but get benefits from their general purpose. Those benefits are difficult to recreate with a site-specific search app with limited content. Google, with its limitless search data, has a sophisticated understanding of user intent and relevance that is difficult to create without significant engineering effort. On Artsy, Google understands that &#8216;koons&#8217; refers to &#8216;Jeff Koons&#8217; and is not a misspelling of &#8216;deKooning&#8217;. It indexes long form content such as user generated posts, and yet knows that &#8216;andy&#8217; refers to &#8216;Andy Warhol&#8217; and not the user &#8216;Andy&#8217; who has never posted. Without knowing the number of inbound link to these pages, it would be difficult to rank our search results so effectively.</p>
+
+<p>Before looking at Google Site Search, we made many valiant attempts at the great search problem. First, we implemented <a href="https://github.com/artsy/mongoid_fulltext">full text search in Mongo</a> (before it had full-text search). Eventually that became too slow and we transitioned to use Solr which we tweaked for 3 years. Importantly, we still use Solr for our autocomplete and all admin applications. When trying to deliver a great search results page, we found it difficult to properly weigh results across our many entities. The easiest solution we could find was Google Site Search which allows you to remove Google branding, customize weigh results and access their <a href="https://developers.google.com/custom-search/json-api/v1/overview">JSON api</a>. While that may seem perfect and done, it took us about a week of tweaking to get the most out of the GSS API and turn it into an Artsy branded experience.</p>
+
+<h2>Will Google Site Search work for me?</h2>
+
+<p>There are many deal-breaker level tradeoffs to consider when evaluating GSS. But in the end, it works well for Artsy and is so easy to setup and maintain that those tradeoffs may be worth it for you as well. We encountered three big issues when trying to implement GSS.</p>
+
+<ol>
+<li>You can no longer have admin only or user specific search results since you just get back public search results.</li>
+<li>Updates to search results take around a week or two.</li>
+<li>The ranking logic is magical and non-inspectable or modifiable.</li>
+</ol>
+
+
+<p>It is important to remember that Google doesn&#8217;t understand your business. It just wants to provide relevant results to people who come to Google, but people likely come to your site for a different reason. Google&#8217;s pagerank considers the entire internet of links towards you. This causes some results that are really good globally to be bad for a site specific search. For example, at Artsy, our highest value pages are Artist pages which convert best for our key metrics. Our editorial pages, while nice are our lowest value pages and convert poorly. Google tends to highlight the editorial pages which have many inbound links. We have hacked around this by bumping up artist pages in results but it isn&#8217;t ideal. Sometimes this works out favorably such as in the Banksy result below (one of our top searches). While SOLR give us artists who may be a misspelling of &#8216;Banksy&#8217;, GSS gives preferable result set with a mix of editorial content about Banksy and related categories.</p>
+
+<p><img src="http://artsy.github.io/images/2014-10-23-how-we-customized-google-site-search-at-artsy/banksy-site-search.jpg" alt="Search for Banksy on artsy" /></p>
+
+<h2>Getting the most out of Google Site Search</h2>
+
+<p>First, make sure Google indexes your site. Google Site Search merely searches Google&#8217;s index of your public site. This may highlight issues with indexing that you may want to fix such as improving page titles, descriptions or adding helpful meta information.</p>
+
+<h3>Google Site Search JSON API</h3>
+
+<p>The most important next step is to use the <a href="https://developers.google.com/custom-search/json-api/v1/overview">JSON API</a> instead of letting Google render the results for you. GSS looks like Google Search (with some theming options). Google-style UI in your site is both conceptually and visually jarring to your users. Your designer may eventually want to move some things around so you might as well just start by rendering the results yourself.</p>
+
+<p>In addition to these visual issues, GSS displays your page title, description and image intended for search engine result pages. This information should be changed to be more appropriate to people who are already on your site. See below where we compare a customized Google Site Search page with our own rendered version. We make the results more appropriate to Artsy by changing the order of results, cleaning up page titles and using visual layout.</p>
+
+<p><img src="http://artsy.github.io/images/2014-10-23-how-we-customized-google-site-search-at-artsy/google-site-search.jpg" alt="Customized Google Site Search at Artsy" /></p>
+
+<h3>Custom Metatags</h3>
+
+<p>The GSS JSON API is not your custom API with a connection to your database but you can make it work like one. You no longer get back nicely structured data allowing you to know if the entity is say, an artist or an artwork. You just get back urls and their meta tags. The key to getting good data out of the GSS API is to use a custom Facebook <a href="http://ogp.me/">Open Graph</a> implementation (custom og:type) and other custom meta tags.</p>
+
+<p>Note how Banksy appears in a different layout from Articles above. For artist pages, we use a custom OG type called &#8216;artsyinc:artist&#8217; which tell us which layout to use when displaying the result. We then include additional data like &#8220;og:nationality&#8221;, &#8220;og:birthyear&#8221; etc if we need extra information. In addition to improving our layout, this makes Artsy more semantic.</p>
+
+<h3>Evaluating Search Changes</h3>
+
+<p>In addition to doing internal testing and sending to friends, we used <a href="https://usertesting.org">usertesting.org</a> to get a wider spectrum of users. This proved valuable just to see how real people phrase queries. For us, an art site, queries differ between art specialists and people new to art. Being able to see both gave us insights such as making search results more visual than textual.</p>
+
+<h2>In Conclusion</h2>
+
+<p>Overall we were surprised at how well Google Site Search worked for us, a specialized art site. Given our level of customization it is impossible tell that we use it. We will see how well GSS plays out long term but so far, we have improved the search experience on Artsy while making it more semantic in the process. I only wish we had considered GSS a valid option earlier.</p>
+
+<p>If you would like to try out Artsy&#8217;s public search API, we have a public version <a href="https://developers.artsy.net/docs/search">here</a>. It uses the <a href="https://github.com/wiseleyb/google_custom_search_api">google_custom_search_api</a> gem which makes GSS trivial to integrate into a Ruby app.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Launching a Security Bug Bounty Program at Artsy]]></title>
@@ -3267,759 +3623,6 @@ scientists</a> by Simon Parsons (CUNY), Juan A. Rodriguez-Aguilar (CSIC) and Mar
 
 <script async src="http://artsy.github.io//platform.twitter.com/widgets.js" charset="utf-8"></script>
 
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Presenters and Memoization: Moving Logic out of Templates]]></title>
-    <link href="http://artsy.github.io/blog/2014/03/18/presenters-and-memoization-moving-logic-out-of-templates/"/>
-    <updated>2014-03-18T17:27:00-04:00</updated>
-    <id>http://artsy.github.io/blog/2014/03/18/presenters-and-memoization-moving-logic-out-of-templates</id>
-    <content type="html"><![CDATA[<p>When dealing with rendering data for an email, one frequently has to make many database calls to assemble the required data. This can be slow, and depending on how you structure the code that is assembling the data vs rendering the data in a template, it&#8217;s very easy to be making repeated calls, which can significantly slow down your process. Additionally, whether you are using <a href="http://haml.info/">Haml</a>, <a href="http://mustache.github.io/">Mustache</a>, <a href="http://jade-lang.com/">Jade</a>, or any other templating language, embedding too much logic in the template can making things hard to maintain (especially if some logic lives in the template and some elsewhere in your domain code). Of course some logic in the template (a conditional: should I render this section?, or loops: render this hash of data) is necessary, but I like to keep as much out of there as possible. It&#8217;s easier to optimize, debug and maintain that logic elsewhere, and also writing complex logic in <a href="https://www.ruby-lang.org">Ruby</a> is much more fun than in a templating language!</p>
-
-<p>In this article I&#8217;ll present what I&#8217;ve been doing to keep my templates relatively logic-free, and how I make sure I don&#8217;t repeat any heavy database calls in assembling my data.</p>
-
-<!-- more -->
-
-
-<h2>The Setup - Presenters and Memoization</h2>
-
-<p>First, I&#8217;d like to introduce the Presenter pattern, and how this can help clean up your templates. Here are a couple of links about using presenters with <a href="http://rubyonrails.org/">Rails</a> that I&#8217;ve found useful:</p>
-
-<ul>
-<li><a href="http://blog.jayfields.com/2007/03/rails-presenter-pattern.html">Jay Fields&#8217; Guide to Presenters</a></li>
-<li><a href="http://www.slideshare.net/mdesjardins/presenters-in-rails">Mike Desjardins&#8217; Slideshare Presentation</a></li>
-</ul>
-
-
-<p>Consider the following screenshot of a section of a weekly email that we send our users:</p>
-
-<p><img src="http://artsy.github.io/images/2014-03-18-presenters-and-memoization-moving-logic-out-of-templates/recently_added.png" alt="Example of Recently Added Works" /></p>
-
-<p>This section shows works that have been added that week by artists that you follow. That&#8217;s clearly going to involve some database calls, and potentially heavy ones at that. Now we&#8217;d like to accomplish two things here: we want to make sure that we only make these calls once (no matter what we wind up doing with the data later), and we also would like to make sure that any code or logic that is making these calls and doing any data manipulation is not being done directly in our templates. Keeping this kind of logic out of your template will make it easier to debug, maintain and write.</p>
-
-<p>Let&#8217;s start by creating a Module to hold the various logic required for this email:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">WeeklyEmailPresenter</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
-</span><span class='line'>    <span class="vi">@user</span> <span class="o">=</span> <span class="n">user</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Ok, so far so good. In our mail template rendering/calling code, we can now say:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="vi">@presenter</span> <span class="o">=</span> <span class="no">WeeklyEmailPresenter</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>This will allow us to refer to methods in this class in our mail template. So now let&#8217;s add a method that will query our database and return a list of artists that this user should be notified about:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">WeeklyEmailPresenter</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
-</span><span class='line'>    <span class="vi">@user</span> <span class="o">=</span> <span class="n">user</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">recently_added_works</span>
-</span><span class='line'>    <span class="c1"># Some really heavy database query</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Ok, that was easy. In our HAML template, we can now do:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class='haml'><span class='line'><span class="p">-</span><span class="k">if</span> <span class="vi">@presenter</span><span class="o">.</span><span class="n">recently_added_works</span> <span class="o">&amp;&amp;</span> <span class="vi">@presenter</span><span class="o">.</span><span class="n">recently_added_works</span><span class="o">.</span><span class="n">any?</span>
-</span><span class='line'>  <span class="nt">%table</span>
-</span><span class='line'>    <span class="nt">%tr</span>
-</span><span class='line'>      <span class="nt">%td</span>
-</span><span class='line'>        <span class="p">-</span><span class="vi">@presenter</span><span class="o">.</span><span class="n">recently_added_works</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">artists</span><span class="o">|</span>
-</span><span class='line'>          &lt;!-- markup to render each artist with recently added works --&gt;
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>However, take a look at how many times we&#8217;ve referred to <code>@presenter.recently_added_works</code> - 3 times already! And we&#8217;ll most likely refer to it more elsewhere (perhaps when deriving a subject line, or showing a total count somewhere, etc.). Depending on how you&#8217;ve implemented the method <code>recently_added_works</code>, you may be re-querying the database every time it&#8217;s referred to! Clearly that&#8217;s a lot of wasted resources. So, let&#8217;s look at an easy change that will guarantee we only ever perform the work to assemble this data once. We memoize it:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">WeeklyEmailPresenter</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
-</span><span class='line'>    <span class="vi">@user</span> <span class="o">=</span> <span class="n">user</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">recently_added_works</span>
-</span><span class='line'>    <span class="vi">@recently_added_works</span> <span class="o">||=</span> <span class="n">build_recently_added_works</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="kp">private</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">build_recently_added_works</span>
-</span><span class='line'>    <span class="c1"># Code to do database lookups</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>All we&#8217;re doing is moving the actual code that&#8217;s doing the heavy lifting into a <code>private</code> method (for convention, I like to prefix the name with <code>build_</code>). The public method that we refer to elsewhere in our presenter and template simply calls the appropriate <code>private</code> method. Through using an instance variable combined with conditional assignment, we guarantee that the <code>build_</code> method (our heavy and slow workhorse method) will only be called once, no matter how many times we refer to the public method.</p>
-
-<p>That&#8217;s it! To summarize, use instance variables in your public methods which is what your templates and other code will use. Those public methods should call private <code>build_</code> methods which actually do all the heavy lifting. This way, you get to easily move logic away from a template and into its own module, and can guarantee that you&#8217;re not repeating any long-running database queries or other slow data processing.</p>
-
-<p>Hopefully you&#8217;ve found this a useful pattern to follow, please leave any feedback in the comments and <a href="https://github.com/artsy">follow us on Github</a>!</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Ruby Helper to Group Artworks into a Pinterest-style Layout for Email]]></title>
-    <link href="http://artsy.github.io/blog/2014/03/17/ruby-helper-to-group-artworks-into-a-pinterest-style-layout-for-email/"/>
-    <updated>2014-03-17T19:32:00-04:00</updated>
-    <id>http://artsy.github.io/blog/2014/03/17/ruby-helper-to-group-artworks-into-a-pinterest-style-layout-for-email</id>
-    <content type="html"><![CDATA[<p><img src="http://artsy.github.io/images/2014-03-17-ruby-helper-to-group-artworks-into-a-pinterest-style-layout-for-email/two-column-layout.png" alt="Example of two column layout" /></p>
-
-<p>Something we&#8217;d like to do is email our users some suggested artworks as part of their personalized emails. The layout of those suggestions should look something like our newly re-designed <a href="https://artsy.net/browse/artworks?price_range=-1%3A1000000000000">Browse</a> page, with a &#8216;salon&#8217; style layout. Here&#8217;s some simple Ruby code that can group artworks into columns for you, that can then be directly rendered in an email (via <a href="http://haml.info/">Haml</a>, <a href="http://mustache.github.io/">Mustache</a>, <a href="http://jade-lang.com/">Jade</a>, or your templating language of choice.)</p>
-
-<!-- more -->
-
-
-<h2>The code</h2>
-
-<p>First let&#8217;s look at the code, and then I&#8217;ll describe it:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-<span class='line-number'>41</span>
-<span class='line-number'>42</span>
-<span class='line-number'>43</span>
-<span class='line-number'>44</span>
-<span class='line-number'>45</span>
-<span class='line-number'>46</span>
-<span class='line-number'>47</span>
-<span class='line-number'>48</span>
-<span class='line-number'>49</span>
-<span class='line-number'>50</span>
-<span class='line-number'>51</span>
-<span class='line-number'>52</span>
-<span class='line-number'>53</span>
-<span class='line-number'>54</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">module</span> <span class="nn">ArtworkColumns</span>
-</span><span class='line'>  <span class="c1"># Return an array of artworks grouped together in sub arrays by being added to the shortest &#39;column&#39;</span>
-</span><span class='line'>  <span class="c1"># based on a fixed width and aspect ratios.</span>
-</span><span class='line'>  <span class="c1">#</span>
-</span><span class='line'>  <span class="c1"># @param {Array} artworks The array of artworks to group into columns</span>
-</span><span class='line'>  <span class="c1"># @param {Number} num_columns The number of columns to group them into</span>
-</span><span class='line'>  <span class="c1"># @param {Number} width The width the images will be displayed at</span>
-</span><span class='line'>  <span class="c1">#</span>
-</span><span class='line'>  <span class="c1"># @return {Array} An array of artworks grouped into sub arrays by being added to the shortest one.</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">artwork_columns</span><span class="p">(</span><span class="n">artworks</span><span class="p">,</span> <span class="n">num_columns</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span>
-</span><span class='line'>    <span class="n">artwork_cols</span> <span class="o">=</span> <span class="o">[]</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="c1"># Initialize columns</span>
-</span><span class='line'>    <span class="n">num_columns</span><span class="o">.</span><span class="n">times</span> <span class="k">do</span>
-</span><span class='line'>      <span class="n">artwork_cols</span> <span class="o">&lt;&lt;</span> <span class="o">[]</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">artworks</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">artwork</span><span class="o">|</span>
-</span><span class='line'>      <span class="n">add_to_shortest_column!</span><span class="p">(</span><span class="n">artwork_cols</span><span class="p">,</span> <span class="n">artwork</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">artwork_cols</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="kp">private</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="c1"># Adds artwork to shortest column</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">add_to_shortest_column!</span><span class="p">(</span><span class="n">artwork_cols</span><span class="p">,</span> <span class="n">artwork</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span>
-</span><span class='line'>    <span class="n">min_height</span> <span class="o">=</span> <span class="n">column_height</span><span class="p">(</span><span class="n">artwork_cols</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span>
-</span><span class='line'>    <span class="n">min_column_idx</span> <span class="o">=</span> <span class="mi">0</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">artwork_cols</span><span class="o">.</span><span class="n">each_with_index</span> <span class="k">do</span> <span class="o">|</span><span class="n">column</span><span class="p">,</span> <span class="n">idx</span><span class="o">|</span>
-</span><span class='line'>      <span class="n">height</span> <span class="o">=</span> <span class="n">column_height</span><span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span>
-</span><span class='line'>      <span class="k">if</span> <span class="n">height</span> <span class="o">&lt;</span> <span class="n">min_height</span>
-</span><span class='line'>        <span class="n">min_height</span> <span class="o">=</span> <span class="n">height</span>
-</span><span class='line'>        <span class="n">min_column_idx</span> <span class="o">=</span> <span class="n">idx</span>
-</span><span class='line'>      <span class="k">end</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">artwork_cols</span><span class="o">[</span><span class="n">min_column_idx</span><span class="o">]</span> <span class="o">&lt;&lt;</span> <span class="n">artwork</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="c1"># Calculate sum of heights of artworks in column</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">column_height</span><span class="p">(</span><span class="n">artwork_col</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span>
-</span><span class='line'>    <span class="n">height</span> <span class="o">=</span> <span class="mi">0</span>
-</span><span class='line'>    <span class="n">artwork_col</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">artwork</span><span class="o">|</span>
-</span><span class='line'>      <span class="k">if</span> <span class="p">(</span><span class="n">aspect_ratio</span> <span class="o">=</span> <span class="n">artwork</span><span class="o">.</span><span class="n">default_image</span><span class="o">.</span><span class="n">aspect_ratio</span><span class="p">)</span>
-</span><span class='line'>        <span class="n">height</span> <span class="o">+=</span> <span class="p">(</span><span class="n">width</span> <span class="o">/</span> <span class="n">aspect_ratio</span><span class="p">)</span><span class="o">.</span><span class="n">floor</span>
-</span><span class='line'>      <span class="k">else</span>
-</span><span class='line'>        <span class="n">height</span> <span class="o">+=</span> <span class="n">width</span>
-</span><span class='line'>      <span class="k">end</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>    <span class="n">height</span>
-</span><span class='line'>  <span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>The algorithm is quite simple (original JS idea and implementation courtesy of Artsy&#8217;s <a href="https://github.com/gib">Gib</a>). The inputs are fairly obvious, an array of artworks to be grouped, the number of columns to group them into, and the width of each column.</p>
-
-<p>We then simply iterate over all our artworks, and add them to whichever column is shortest. This way we end up with several columns that are for the most part equally sized in height, and as they all have different aspect ratios, when they are rendered in a table, you wind up with a nice looking &#8216;dynamic&#8217; layout. The height of each column is calculated as the sum of the heights of the artworks in each column. The heights are derived from the inputted widths and aspect ratios of the images.</p>
-
-<p>Here&#8217;s how you might iterate over the returned column groupings and render a layout similar to the above:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-</pre></td><td class='code'><pre><code class='haml'><span class='line'><span class="p">-</span> <span class="n">artwork_suggestions</span><span class="o">.</span><span class="n">each_with_index</span> <span class="k">do</span> <span class="o">|</span><span class="n">artwork_arr</span><span class="p">,</span> <span class="n">idx</span><span class="o">|</span>
-</span><span class='line'>  <span class="nt">%td</span><span class="p">{</span> <span class="nb">id</span><span class="p">:</span> <span class="s1">&#39;artwork-column&#39;</span><span class="p">,</span> <span class="ss">style</span><span class="p">:</span> <span class="s2">&quot;width: 290px;padding-top:20px;text-align:left;&quot;</span> <span class="p">}</span>
-</span><span class='line'>    <span class="p">-</span> <span class="n">artwork_array</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">artwork</span><span class="o">|</span>
-</span><span class='line'>      <span class="nt">%a</span><span class="p">{</span> <span class="ss">href</span><span class="p">:</span> <span class="s2">&quot;</span><span class="si">#{</span><span class="n">canonical_url</span><span class="si">}</span>/artwork/<span class="si">#{</span><span class="n">artwork</span><span class="o">.</span><span class="n">slug</span><span class="si">}</span>?<span class="si">#{</span><span class="vi">@utm_params</span><span class="si">}</span>&quot; }&lt;
-</span><span class='line'>        <span class="nt">%img</span><span class="p">{</span> <span class="nb">id</span><span class="p">:</span> <span class="s1">&#39;artwork&#39;</span><span class="p">,</span> <span class="ss">src</span><span class="p">:</span> <span class="s2">&quot;</span><span class="si">#{</span><span class="n">artwork</span><span class="o">.</span><span class="n">default_image</span><span class="o">.</span><span class="n">image_url</span><span class="p">(</span><span class="ss">:large</span><span class="p">)</span><span class="si">}</span>&quot;, style: &quot;width: 290px;&quot; }
-</span><span class='line'>      <span class="nt">%br</span>
-</span><span class='line'>      &lt;!-- additional artwork details, title, artist, etc. --&gt;
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>These few lines of Ruby code have allowed us to move logic out of Haml (yuck!) and into Ruby (yay!) and allow <a href="http://haml.info/">Haml</a> to just focus on rendering the objects passed in (certainly via loops and conditionals, etc.)</p>
-
-<p>That&#8217;s all for now! In my next post I&#8217;ll talk about how I use the Presenter pattern and memoization to move even more logic out of templates (and save some database calls while we&#8217;re at it!)</p>
-
-<p>Thanks again! Post any comments or tips of your own here, and <a href="https://github.com/artsy">follow us on Github</a>!</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Some Tips for Email Layout and Responsiveness]]></title>
-    <link href="http://artsy.github.io/blog/2014/03/17/some-tips-for-email-layout-and-responsiveness/"/>
-    <updated>2014-03-17T12:36:00-04:00</updated>
-    <id>http://artsy.github.io/blog/2014/03/17/some-tips-for-email-layout-and-responsiveness</id>
-    <content type="html"><![CDATA[<p><img src="http://artsy.github.io/images/2014-03-17-some-tips-for-email-layout-and-responsiveness/analytics.png" alt="Example of Analytics Email" /></p>
-
-<p>Email can be one of the most powerful ways to engage with your users, and can serve a multitude of purposes. It can be used as a way to highlight selected content (weekly/monthly newsletters, &#8216;year in review&#8217;, etc.), provide a service to users (analytics breakdown of visits to your profile/favorites page), or re-engage with users (new feature announcements, etc.). Here at Artsy we use all of these kinds of emails and have found them to be a very valuable asset. However, best practices for template layout and CSS (keeping in mind the variety of devices and screen sizes that your users have) are quite different from, and very far behind, the current HTML5 standards and practices for making beautiful web pages. In this article, I&#8217;d like to present some techniques I&#8217;ve successfully used at Artsy to create emails that look good on your browser or mobile device, in some of the most popular email clients out there.</p>
-
-<!-- more -->
-
-
-<h2>The Main Difference Between Email and Web</h2>
-
-<p>A fundamental difference between email and web, and which essentially accounts for the completely different methodology and rules you should follow for emails, is that of the rendering client. In 2014, (assuming you are not supporting certain legacy versions of Internet Explorer and other old versions), browsers for the most part will render passed in HTML and CSS in a standard fashion. While there are some notable exceptions still, graceful degradation is quite possible. That is because the only &#8216;interpreter&#8217; of your HTML is the end user&#8217;s browser, which operates under a certain set of known rules. With emails however, the interpreter is the end user&#8217;s mail client of choice, which can be: native iOS apps, web apps, and even standalone desktop applications. All of these do their own parsing/interpreting before rendering, which can cause HTML that results in a nice looking web page to look totally broken in an email, as well as the same exact email looking remarkably different across mail clients. One of the main reasons why email clients do this is to remove things that might interfere with the rendering of the mail client itself, or any security risks.</p>
-
-<p>Also of note is that the use of Javascript within an email is of course, not possible. Additionally, the HTML that will be emailed to your users needs to be sent as one file with inlined CSS. You can use a tool like <a href="https://github.com/premailer/premailer/">premailer</a> to allow you to develop your CSS separately and then convert to an inline style.</p>
-
-<h2>Some Basics about Tables</h2>
-
-<p>Yes, it&#8217;s 2014, and yes, we&#8217;re going to talk about tables on an engineering blog. That&#8217;s because for emails, tables are going to be your main tool to position and lay out your content. Two of the most common CSS selectors (<code>position</code> and <code>display</code>) are bad ideas to use in email. They are mostly unsupported by mail clients (which will reach in and rewrite your HTML/CSS) and will lead to unexpected looking output. However, you can achieve virtually any layout desired using tables.</p>
-
-<p>Here is sample HTML that generates the top part of the email shown above. While it may make your eyes bleed from the table use, notice we are able to achieve the beginnings of a basic 3-column layout, with equal-width columns and centered headers/text with no position-related CSS.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-<span class='line-number'>41</span>
-<span class='line-number'>42</span>
-<span class='line-number'>43</span>
-</pre></td><td class='code'><pre><code class='html'><span class='line'><span class="nt">&lt;table</span> <span class="na">border=</span><span class="s">&#39;0&#39;</span> <span class="na">cellpadding=</span><span class="s">&#39;0&#39;</span> <span class="na">cellspacing=</span><span class="s">&#39;0&#39;</span> <span class="na">style=</span><span class="s">&#39;margin: 0 20px; table-layout: fixed;&#39;</span> <span class="na">width=</span><span class="s">&#39;600px&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>  <span class="nt">&lt;tr&gt;</span>
-</span><span class='line'>    <span class="nt">&lt;td</span> <span class="na">align=</span><span class="s">&#39;center&#39;</span> <span class="na">colspan=</span><span class="s">&#39;3&#39;</span> <span class="na">style=</span><span class="s">&#39;padding: 0px 0px 15px&#39;</span> <span class="na">valign=</span><span class="s">&#39;middle&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>      <span class="nt">&lt;font</span> <span class="na">color=</span><span class="s">&#39;black&#39;</span> <span class="na">style=</span><span class="s">&#39;font-family: Georgia, serif;font-size: 16px; line-height: 1.3em; letter-spacing:2px;text-transform:uppercase;&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>        Cats Galore at the Cat Art Fair 2014
-</span><span class='line'>      <span class="nt">&lt;/font&gt;</span>
-</span><span class='line'>    <span class="nt">&lt;/td&gt;</span>
-</span><span class='line'>  <span class="nt">&lt;/tr&gt;</span>
-</span><span class='line'>  <span class="nt">&lt;tr&gt;</span>
-</span><span class='line'>    <span class="nt">&lt;td</span> <span class="na">align=</span><span class="s">&#39;left&#39;</span> <span class="na">style=</span><span class="s">&#39;padding: 0px 0px 15px; border-right: 1px solid grey;&#39;</span> <span class="na">valign=</span><span class="s">&#39;middle&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>      <span class="nt">&lt;font</span> <span class="na">color=</span><span class="s">&#39;black&#39;</span> <span class="na">style=</span><span class="s">&#39;font-family: Georgia, serif;font-size: 16px; line-height: 1.3em;&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>        <span class="nt">&lt;div</span> <span class="na">style=</span><span class="s">&#39;text-align: center; font-size: 23px;&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>          24
-</span><span class='line'>        <span class="nt">&lt;/div&gt;</span>
-</span><span class='line'>        <span class="nt">&lt;div</span> <span class="na">style=</span><span class="s">&#39;text-align: center;&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>          works
-</span><span class='line'>          in your booth
-</span><span class='line'>        <span class="nt">&lt;/div&gt;</span>
-</span><span class='line'>      <span class="nt">&lt;/font&gt;</span>
-</span><span class='line'>    <span class="nt">&lt;/td&gt;</span>
-</span><span class='line'>    <span class="nt">&lt;td</span> <span class="na">align=</span><span class="s">&#39;middle&#39;</span> <span class="na">style=</span><span class="s">&#39;padding: 0px 0px 15px; border-right: 1px solid grey;&#39;</span> <span class="na">valign=</span><span class="s">&#39;middle&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>      <span class="nt">&lt;font</span> <span class="na">color=</span><span class="s">&#39;black&#39;</span> <span class="na">style=</span><span class="s">&#39;font-family: Georgia, serif;font-size: 16px; line-height: 1.3em;&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>        <span class="nt">&lt;div</span> <span class="na">style=</span><span class="s">&#39;text-align: center; font-size: 23px;&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>          3,086
-</span><span class='line'>          <span class="nt">&lt;/div&gt;</span>
-</span><span class='line'>        <span class="nt">&lt;div</span> <span class="na">style=</span><span class="s">&#39;text-align: center;&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>          total artwork views
-</span><span class='line'>        <span class="nt">&lt;/div&gt;</span>
-</span><span class='line'>      <span class="nt">&lt;/font&gt;</span>
-</span><span class='line'>    <span class="nt">&lt;/td&gt;</span>
-</span><span class='line'>    <span class="nt">&lt;td</span> <span class="na">align=</span><span class="s">&#39;right&#39;</span> <span class="na">valign=</span><span class="s">&#39;middle&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>    <span class="nt">&lt;font</span> <span class="na">color=</span><span class="s">&#39;black&#39;</span> <span class="na">style=</span><span class="s">&#39;font-family: Georgia, serif;font-size: 16px; line-height: 1.3em;&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>      <span class="nt">&lt;div</span> <span class="na">style=</span><span class="s">&#39;text-align: center; font-size: 23px;&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>        471
-</span><span class='line'>      <span class="nt">&lt;/div&gt;</span>
-</span><span class='line'>      <span class="nt">&lt;div</span> <span class="na">style=</span><span class="s">&#39;text-align: center;&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>        cities reached
-</span><span class='line'>      <span class="nt">&lt;/div&gt;</span>
-</span><span class='line'>    <span class="nt">&lt;/font&gt;</span>
-</span><span class='line'>    <span class="nt">&lt;/td&gt;</span>
-</span><span class='line'>  <span class="nt">&lt;/tr&gt;</span>
-</span><span class='line'>  <span class="c">&lt;!-- more content below --&gt;</span>
-</span><span class='line'><span class="nt">&lt;/table&gt;</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Now under this we present a heatmap and table of top views by city. For that we use the same 3-column table, except specify a colspan of 2 on the column that contains the heatmap. That is because we would like that column to take up a width equal to the first 2 columns of the equally spaced three at the top, and the table of top views will take up the last column. Here&#8217;s that markup:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-</pre></td><td class='code'><pre><code class='html'><span class='line'><span class="nt">&lt;tr&gt;</span>
-</span><span class='line'><span class="nt">&lt;td</span> <span class="na">align=</span><span class="s">&#39;left&#39;</span> <span class="na">colspan=</span><span class="s">&#39;2&#39;</span> <span class="na">style=</span><span class="s">&#39;padding: 0px 0px 15pxl; width: 66%;&#39;</span> <span class="na">valign=</span><span class="s">&#39;middle&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>  <span class="nt">&lt;div&gt;</span>
-</span><span class='line'>    <span class="nt">&lt;img</span> <span class="na">src=</span><span class="s">&#39;link_to_heatmap.png&#39;</span> <span class="na">width=</span><span class="s">&#39;400px&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>  <span class="nt">&lt;/div&gt;</span>
-</span><span class='line'><span class="nt">&lt;/td&gt;</span>
-</span><span class='line'><span class="nt">&lt;td</span> <span class="na">align=</span><span class="s">&#39;right&#39;</span> <span class="na">style=</span><span class="s">&#39;padding: 0px 23px 15px; width: 33%; text-align:left;&#39;</span> <span class="na">valign=</span><span class="s">&#39;middle&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>  <span class="nt">&lt;font</span> <span class="na">color=</span><span class="s">&#39;black&#39;</span> <span class="na">style=</span><span class="s">&#39;font-family: Georgia, serif;font-size: 12px; line-height: 1.3em; font-weight:bold;&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>    Top 10 Cities
-</span><span class='line'>  <span class="nt">&lt;/font&gt;</span>
-</span><span class='line'>  <span class="nt">&lt;font</span> <span class="na">color=</span><span class="s">&#39;black&#39;</span> <span class="na">style=</span><span class="s">&#39;font-family: Georgia, serif;font-size: 12px; line-height: 1.3em;&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>    New York
-</span><span class='line'>    21.66%
-</span><span class='line'>    <span class="nt">&lt;br&gt;</span>
-</span><span class='line'>    London
-</span><span class='line'>    3.34%
-</span><span class='line'>    <span class="nt">&lt;br&gt;</span>
-</span><span class='line'>    <span class="c">&lt;!-- &#39;br&#39; separated string of views --&gt;</span>
-</span><span class='line'>  <span class="nt">&lt;/font&gt;</span>
-</span><span class='line'><span class="nt">&lt;/td&gt;</span>
-</span><span class='line'>  <span class="nt">&lt;/tr&gt;</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Notice that again we are using no position or display related CSS. However, now our table has a 3 column section and a 2 column section, and we are well on our way to creating a nice email! I kept these as separate rows in the same table, but could have equivalently had each of them be their own table with no ill effects and almost the same markup. Depending on your design and layout, you may need to have multiple tables (nested and not) to support different widths and column layouts, however they should all just <em>work</em>.</p>
-
-<h2>Background Images and Overlayed Text</h2>
-
-<p>Ok, so tables are all well and good and you can achieve a lot using them, and without having to use any display or position CSS. But what if you want to overlay text on an image? (or even another image over an image)? On a web page, there are many ways to accomplish that, but they all use CSS that you really should not be using in emails (namely: <code>position</code>, <code>display</code>, <code>top</code>, <code>right</code>, <code>bottom</code>, <code>left</code>, and most layout properties besides padding. Also, no negative padding please!). But no worries, because you can still accomplish that using background images!</p>
-
-<p>Here is an example from our current welcome mail to users:</p>
-
-<p><img src="http://artsy.github.io/images/2014-03-17-some-tips-for-email-layout-and-responsiveness/welcome_desktop.png" alt="Example of Welcome Mail" /></p>
-
-<p>The top part (the iPhone pic) is actually two images (the picture, and the App Store logo), as well as some text overlayed on top. Here is the HTML to accomplish that:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-</pre></td><td class='code'><pre><code class='html'><span class='line'><span class="nt">&lt;table</span> <span class="na">cellpadding=</span><span class="s">&#39;0&#39;</span> <span class="na">cellspacing=</span><span class="s">&#39;0&#39;</span> <span class="na">id=</span><span class="s">&#39;iphone-table&#39;</span> <span class="na">style=</span><span class="s">&#39;border: 0;padding:10px 0px 15px 0px;width:625px&#39;</span> <span class="na">width=</span><span class="s">&#39;625&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>  <span class="nt">&lt;tr&gt;</span>
-</span><span class='line'>    <span class="nt">&lt;td</span> <span class="na">align=</span><span class="s">&#39;left&#39;</span> <span class="na">valign=</span><span class="s">&#39;middle&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>      <span class="nt">&lt;table</span> <span class="na">background=</span><span class="s">&#39;link_to_phone.png&#39;</span> <span class="na">cellpadding=</span><span class="s">&#39;0&#39;</span> <span class="na">cellspacing=</span><span class="s">&#39;0&#39;</span> <span class="na">height=</span><span class="s">&#39;265&#39;</span> <span class="na">style=</span><span class="s">&#39;height:265px;width:625px&#39;</span> <span class="na">width=</span><span class="s">&#39;625&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>        <span class="nt">&lt;tr&gt;</span>
-</span><span class='line'>          <span class="nt">&lt;td</span> <span class="na">style=</span><span class="s">&#39;padding-top:57px;padding-right:53px;padding-left:375px;text-align:center;&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>            <span class="nt">&lt;div</span> <span class="na">style=</span><span class="s">&#39;line-height:26px;&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>              <span class="nt">&lt;font</span> <span class="na">style=</span><span class="s">&#39;text-transform: uppercase; font-size: 19px; font-family: Georgia, serif; color: white;-webkit-font-smoothing:antialiased;&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>                Download Artsy for iPhone
-</span><span class='line'>              <span class="nt">&lt;/font&gt;</span>
-</span><span class='line'>            <span class="nt">&lt;/div&gt;</span>
-</span><span class='line'>            <span class="nt">&lt;div</span> <span class="na">style=</span><span class="s">&#39;padding-top:10px;&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>              <span class="nt">&lt;font</span> <span class="na">style=</span><span class="s">&#39;font-size: 14px; font-family: Georgia, serif; color: white;-webkit-font-smoothing:antialiased;&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>                The art world in your pocket.
-</span><span class='line'>              <span class="nt">&lt;/font&gt;</span>
-</span><span class='line'>            <span class="nt">&lt;/div&gt;</span>
-</span><span class='line'>          <span class="nt">&lt;/td&gt;</span>
-</span><span class='line'>        <span class="nt">&lt;/tr&gt;</span>
-</span><span class='line'>        <span class="nt">&lt;tr&gt;</span>
-</span><span class='line'>          <span class="nt">&lt;td</span> <span class="na">align=</span><span class="s">&#39;right&#39;</span> <span class="na">style=</span><span class="s">&#39;padding-right:82px;vertical-align:top;&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>            <span class="nt">&lt;a</span> <span class="na">href=</span><span class="s">&#39;https://itunes.apple.com/us/app/artsy-art-world-in-your-pocket/id703796080?ls=1&amp;amp;mt=8&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>              <span class="nt">&lt;img</span> <span class="na">src=</span><span class="s">&#39;app_store.png&#39;</span> <span class="na">style=</span><span class="s">&#39;border: none; outline: none; vertical-align:top;&#39;</span> <span class="na">width=</span><span class="s">&#39;140px&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>            <span class="nt">&lt;/a&gt;</span>
-</span><span class='line'>          <span class="nt">&lt;/td&gt;</span>
-</span><span class='line'>        <span class="nt">&lt;/tr&gt;</span>
-</span><span class='line'>      <span class="nt">&lt;/table&gt;</span>
-</span><span class='line'>    <span class="nt">&lt;/td&gt;</span>
-</span><span class='line'>  <span class="nt">&lt;/tr&gt;</span>
-</span><span class='line'><span class="nt">&lt;/table&gt;</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>I chose to use a separate table to hold this content, where the background image for this table is the picture of the iPhone in hand. That table (with a background of the photo) has two rows, each with one column. The first row which is for the top part of the image, contains the &#8216;Download&#8217; white text. That is positioned within the column through padding, which is well supported by most mail clients (as long as it&#8217;s positive padding that is!) The second row, for the bottom part of the image, is a picture of the &#8216;Download on the App Store&#8217; logo, and we chose to put that in an anchor tag and link to the App Store. You could have alternatively made this image a background as well to achieve the same overlay effect, as well as added more overlaid text, etc.</p>
-
-<p>Essentially, to overlay text on images, and images on images - your only option in email is to use background images.</p>
-
-<h2>Mobile Responsiveness</h2>
-
-<p>Ok, at this point we know how to craft some &#8216;dynamic&#8217; layouts, (multi-column, sidebar, etc) and can overlay text and images for added effect. Now let&#8217;s think about how this should work/look on a mobile device. Media queries will be our tool of choice here (well supported by mobile mail clients, with a notable exception being the Gmail iOS app.)</p>
-
-<p>Something to keep in mind, depending on your use case, is to potentially design the email in the first place with mobile in mind. This can mean larger font sizes across the layout, as well as a single or two column layout max for your content. Since you have much less screen space to work with on mobile, the media queries we are going to use will largely be to increase font sizes, as well as using &#8216;width&#8217; and &#8216;float&#8217; to force a two column layout into one column (as an example). Depending on the mail design, this can be simple to do, or quite tricky. It&#8217;s worth considering this in your initial designs.</p>
-
-<p>Now the first thing to do is to include the following meta tag in your HTML:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='html'><span class='line'>  <span class="nt">&lt;meta</span> <span class="na">name=</span><span class="s">&#39;viewport&#39;</span> <span class="na">content=</span><span class="s">&#39;width=device-width, initial-scale=1.0&#39;</span><span class="nt">&gt;</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>This will tell the browser to treat the viewport size as the size of the device that is being used. This combined with media queries will enable us to create mobile emails.</p>
-
-<p>As an example, consider the following two images. The first is the desktop version of the top part of a personalized weekly mail (blog post on how we efficiently generate these to come!), and the second is the mobile version of that same mail.</p>
-
-<p><img src="http://artsy.github.io/images/2014-03-17-some-tips-for-email-layout-and-responsiveness/personalized_desktop.png" alt="Example of Personalized Desktop" /></p>
-
-<p><img src="http://artsy.github.io/images/2014-03-17-some-tips-for-email-layout-and-responsiveness/personalized_summary.png" alt="Example of Personalized Mobile" /></p>
-
-<p>The markup for this is pretty vanilla (similar to above, 3 column layout in a table). For mobile, we want to left-align everything and trim things down to one column. Of note here is that we are truncating text with ellipsis in the desktop version, and when the content reflows to one column we actually have <em>more</em> room to reveal the text (but still keeping truncation in just in case), so we have to enclose the text in a <code>div</code> (must have a block element for truncation)</p>
-
-<p>Here is how we truncate text:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='html'><span class='line'>  <span class="nt">&lt;div</span> <span class="na">id=</span><span class="s">&#39;row-to-expand&#39;</span> <span class="na">style=</span><span class="s">&#39;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:150px;&#39;</span><span class="nt">&gt;</span>
-</span><span class='line'>    Some really long text that will get truncated
-</span><span class='line'>  <span class="nt">&lt;/div&gt;</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>We specify a width on a block-level element and then use the ellipsis trick. Here&#8217;s another screenshot of the truncation in action:</p>
-
-<p><img src="http://artsy.github.io/images/2014-03-17-some-tips-for-email-layout-and-responsiveness/personalized_shows.png" alt="Example of Shows Listing" /></p>
-
-<p> Our first media query can be something like:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='css'><span class='line'>  <span class="k">@media</span> <span class="o">(</span><span class="nt">max-device-width</span><span class="o">:</span> <span class="nt">320px</span><span class="o">)</span><span class="p">{</span>
-</span><span class='line'>    <span class="nt">div</span><span class="o">[</span><span class="nt">id</span><span class="o">=</span><span class="s1">&#39;row-to-expand&#39;</span><span class="o">]</span><span class="p">{</span>
-</span><span class='line'>      <span class="k">width</span><span class="o">:</span> <span class="m">260px</span> <span class="cp">!important</span><span class="p">;</span>
-</span><span class='line'>    <span class="p">}</span>
-</span><span class='line'>  <span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>We&#8217;ve set the breakpoint at 320px (vertical layout on an iPhone), and at widths less than or equal to that, this rule will kick in. Note the &#8216;!important&#8217; at the end (all of our media queries will have that to allow them to override the existing inline CSS). This is enough to expand that div and reveal more text.</p>
-
-<p>Here&#8217;s the media queries for the rest of this section that transforms the three column layout into one:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-</pre></td><td class='code'><pre><code class='css'><span class='line'>  <span class="k">@media</span> <span class="o">(</span><span class="nt">max-device-width</span><span class="o">:</span> <span class="nt">320px</span><span class="o">)</span><span class="p">{</span>
-</span><span class='line'>    <span class="nt">td</span><span class="o">[</span><span class="nt">id</span><span class="o">=</span><span class="s1">&#39;summary-col&#39;</span><span class="o">]</span><span class="p">{</span>
-</span><span class='line'>      <span class="k">float</span><span class="o">:</span> <span class="k">left</span> <span class="cp">!important</span><span class="p">;</span>
-</span><span class='line'>    <span class="p">}</span>
-</span><span class='line'>    <span class="nt">td</span><span class="o">[</span><span class="nt">id</span><span class="o">=</span><span class="s1">&#39;summary-header&#39;</span><span class="o">]</span><span class="p">{</span>
-</span><span class='line'>      <span class="k">float</span><span class="o">:</span> <span class="k">right</span> <span class="cp">!important</span><span class="p">;</span>
-</span><span class='line'>      <span class="k">width</span><span class="o">:</span> <span class="m">300px</span> <span class="cp">!important</span><span class="p">;</span>
-</span><span class='line'>    <span class="p">}</span>
-</span><span class='line'>    <span class="nt">td</span><span class="o">[</span><span class="nt">id</span><span class="o">=</span><span class="s1">&#39;nested-summary-col&#39;</span><span class="o">]</span><span class="p">{</span>
-</span><span class='line'>      <span class="k">width</span><span class="o">:</span> <span class="m">300px</span> <span class="cp">!important</span><span class="p">;</span>
-</span><span class='line'>      <span class="k">float</span><span class="o">:</span> <span class="k">left</span> <span class="cp">!important</span><span class="p">;</span>
-</span><span class='line'>      <span class="k">padding</span><span class="o">:</span> <span class="m">0px</span> <span class="cp">!important</span><span class="p">;</span>
-</span><span class='line'>    <span class="p">}</span>
-</span><span class='line'>    <span class="nt">table</span><span class="o">[</span><span class="nt">id</span><span class="o">=</span><span class="s1">&#39;summary&#39;</span><span class="o">]</span><span class="p">{</span>
-</span><span class='line'>      <span class="k">width</span><span class="o">:</span> <span class="m">300px</span> <span class="cp">!important</span><span class="p">;</span>
-</span><span class='line'>    <span class="p">}</span>
-</span><span class='line'>  <span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>where the <code>td[id='nested-summary-col']</code> are the <code>td</code>s that hold the thumbnail and artist or gallery name.
-Essentially all we are doing is changing the width of the container/parent table to 300px, and then making the width of each <code>td</code> 300px and adding a float. This will force your table to now be a one column layout- easy!</p>
-
-<h3>Some misc. email tweaks</h3>
-
-<p>Sometimes it becomes necessary to hide/show certain things for mobile or desktop. This can be a bit tricky due to not being able to use <code>display:none;</code> , so here are a few things I&#8217;ve found that worked:</p>
-
-<ul>
-<li><code>width: 0px;</code> (works for hiding images)</li>
-<li><code>line-height: 0px;</code> (works for hiding text)</li>
-<li><code>font-size: 0px;</code> (works for hiding text)</li>
-</ul>
-
-
-<p>Another thing you might encounter is that text links automatically become blue in email. This is because many mail clients will take an un-styled or black link text and make them a default blue color. An easy hack to get around this is to explicitly color your links something like &#8216;#000001&#8217;. This &#8216;almost-black&#8217; will be left untouched by mail clients, yet is close enough to black that the naked eye can&#8217;t perceive the difference.</p>
-
-<p>Here&#8217;s a screenshot of an <a href="https://github.com/desandro/isotope">isotope</a> or <a href="https://www.pinterest.com/">Pinterest</a> column style layout, with truncation of text, and resized for mobile (running the full gamut of tricks):</p>
-
-<p><img src="http://artsy.github.io/images/2014-03-17-some-tips-for-email-layout-and-responsiveness/personalized_suggestions.png" alt="Example of Personalized Suggestions" /></p>
-
-<p><a href="https://gist.github.com/mzikherman/9610125">Here is a gist</a> I use to prepare artworks for a columnar display like this. You pass in a collection of artworks (where each artwork is arbitrarily sized), and the number of columns and width of the desired output. It will return the artworks grouped into columns that can be directly rendered in an email, while respecting aspect ratios and ensuring the columns are of <em>approximately</em> equal height - resulting in a dynamic feeling layout. For this email, we group this set of artworks into 2 coumns, with each column having a width of 300px (for desktop).</p>
-
-<h2>Great tools to use:</h2>
-
-<ul>
-<li><a href="https://github.com/premailer/premailer/">Premailer</a> This will enable you to develop CSS in a sane (ie- not inline) way, and then at generation/compile time, inline it for you.</li>
-<li><a href="http://litmus.com/">Litmus</a> Using Litmus&#8217;s VM&#8217;s with different OS&#8217;s and mail clients, you can preview how a sample email will look among all sorts of different configurations. I recommend figuring out what mail clients/browsers/OS&#8217;s you want to target and making sure you test all your emails here.</li>
-<li><a href="http://haml.info/">Haml</a> (or any templating language of choice). A lot of the blocks of content in our mails are dynamically generated, and Haml&#8217;s conditionals and looping syntax, as well as
-Ruby-style string evaluation has proven invaluable.</li>
-</ul>
-
-
-<hr />
-
-<p>That&#8217;s all for now! With a lot of trial and error, I&#8217;ve built up a toolbelt of tricks, techniques and hacks I&#8217;ve been using to develop responsive and pretty emails quickly. I think of the limited set of tools at my disposal as a puzzle with which you can still create great looking and responsive layouts to feature your content. Previewing mails using <a href="http://mailchimp.com/features/inbox-inspector/">Inbox Inspector</a> have enabled me to craft, deploy, and send them to our users with confidence. Post any comments or tips of your own here, and <a href="https://github.com/artsy">follow us on Github</a>!</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Detecting trends using Forgetsy]]></title>
-    <link href="http://artsy.github.io/blog/2014/03/17/detecting-trends-with-forgetsy/"/>
-    <updated>2014-03-17T11:32:00-04:00</updated>
-    <id>http://artsy.github.io/blog/2014/03/17/detecting-trends-with-forgetsy</id>
-    <content type="html"><![CDATA[<p><img src="http://artsy.github.io/images/2014-03-17-detecting-trends-with-forgetsy/monolith.jpg" alt="Armory Trending Screen" /></p>
-
-<p>As part of our partnership with <a href="https://www.thearmoryshow.com/">The New York Armory Show</a> this year, we installed a number of terminals throughout the fair. These screens used our own real-time data to display an ever shifting set of trending artworks, artists, and booths, to the attendees.</p>
-
-<p>Out of this work, we&#8217;ve open-sourced <a href="https://github.com/cavvia/forgetsy">Forgetsy</a>, a lightweight Ruby trending library. Put simply, Forgetsy implements data structures that forget. Loosely based on Bit.ly&#8217;s <a href="http://word.bitly.com/post/41284219720/forget-table">Forget Table</a> concept, Forgetsy uses decaying counters to track temporal trends in categorical distributions.</p>
-
-<!-- more -->
-
-
-<h2>Anatomy of a Trend</h2>
-
-<p>To clarify the term &#8216;trend&#8217;, let&#8217;s take this graph of cumulative artist searches over time as an example.</p>
-
-<p><img src="http://artsy.github.io/images/2014-03-17-detecting-trends-with-forgetsy/searches.png" alt="Artist Search Graphs" /></p>
-
-<p>On the left-hand side, we see a steepening gradient (denoted by the dashed lines) for Banksy during his residency in New York (Oct 2013), but in contrast a linear rise in searches for Warhol over the same period. We define a &#8216;trend&#8217; as this rise in the <em>rate</em> of observations of a particular event over a time period, which we&#8217;ll call τ.</p>
-
-<p>In Forgetsy, trends are encapsulated by a construct named <em>delta</em>. A <em>delta</em> consists of two sets of counters, each of which implements <a href="https://en.wikipedia.org/wiki/Exponential_decay">exponential decay</a> of the following form.</p>
-
-<p><img src="http://latex.codecogs.com/gif.latex?X_t_1%3DX_t_0%5Ctimes%7Be%5E%7B-%5Clambda%5Ctimes%7Bt%7D%7D%7D" alt="Exponential Decay" /></p>
-
-<p>Where the inverse of the decay rate (λ) is the lifetime of an observation in the set, τ. By normalising one set by a set with half the decay rate (or double the lifetime), we obtain a trending score for each category in a distribution. This score expresses the change in the rate of observations of a category over the lifetime of the set, as a proportion in the range [0,1].</p>
-
-<p>Forgetsy removes the need for manually sliding time windows or explicitly maintaining rolling counts, as observations naturally decay away over time. It&#8217;s designed for heavy writes and sparse reads, as it implements decay at read time. Each set is implemented as a <a href="http://redis.io/">redis</a> sorted set, and keys are scrubbed when a count is decayed to near zero, providing storage efficiency.</p>
-
-<p>As a result, Forgetsy handles distributions with up to around 10<sup>6</sup> active categories, receiving hundreds of writes per second, without much fuss.</p>
-
-<h2>Usage</h2>
-
-<p>Take a social network in which users can follow each other. You want to track trending users. You construct a delta with a one week lifetime, to capture trends in your follows data over one week periods:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">follows_delta</span> <span class="o">=</span> <span class="ss">Forgetsy</span><span class="p">:</span><span class="ss">:Delta</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s1">&#39;user_follows&#39;</span><span class="p">,</span> <span class="ss">t</span><span class="p">:</span> <span class="mi">1</span><span class="o">.</span><span class="n">week</span><span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>The delta consists of two sets of counters indexed by category identifiers. In this example, the identifiers will be user ids. One set decays over the mean lifetime specified by τ, and another set decays over double the lifetime.</p>
-
-<p>You can now add observations to the delta, in the form of follow events. Each time a user follows another, you increment the followed user id. You can also do this retrospectively:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">follows_delta</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s1">&#39;UserFoo&#39;</span><span class="p">,</span> <span class="ss">date</span><span class="p">:</span> <span class="mi">2</span><span class="o">.</span><span class="n">weeks</span><span class="o">.</span><span class="n">ago</span><span class="p">)</span>
-</span><span class='line'><span class="n">follows_delta</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s1">&#39;UserBar&#39;</span><span class="p">,</span> <span class="ss">date</span><span class="p">:</span> <span class="mi">10</span><span class="o">.</span><span class="n">days</span><span class="o">.</span><span class="n">ago</span><span class="p">)</span>
-</span><span class='line'><span class="n">follows_delta</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s1">&#39;UserBar&#39;</span><span class="p">,</span> <span class="ss">date</span><span class="p">:</span> <span class="mi">1</span><span class="o">.</span><span class="n">week</span><span class="o">.</span><span class="n">ago</span><span class="p">)</span>
-</span><span class='line'><span class="o">.</span><span class="n">.</span><span class="o">.</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Providing an explicit date is useful if you are processing data asynchronously. You can also use the <code>incr_by</code> option to increment a counter in batches. You can now consult your follows delta to find your top trending users:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="nb">puts</span> <span class="n">follows_delta</span><span class="o">.</span><span class="n">fetch</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Will print:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="p">{</span> <span class="s1">&#39;UserFoo&#39;</span> <span class="o">=&gt;</span> <span class="mi">0</span><span class="o">.</span><span class="mi">789</span><span class="p">,</span> <span class="s1">&#39;UserBar&#39;</span> <span class="o">=&gt;</span> <span class="mi">0</span><span class="o">.</span><span class="mi">367</span> <span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Each user is given a dimensionless score in the range [0,1] corresponding to the normalised follows delta over the time period. This expresses the proportion of follows gained by the user over the last week compared to double that lifetime.</p>
-
-<p>Optionally fetch the top <em>n</em> users, or an individual user&#8217;s trending score:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">follows_delta</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="ss">n</span><span class="p">:</span> <span class="mi">20</span><span class="p">)</span>
-</span><span class='line'><span class="n">follows_delta</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="ss">bin</span><span class="p">:</span> <span class="s1">&#39;UserFoo&#39;</span><span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>For more information on usage, check out the <a href="https://github.com/cavvia/forgetsy">github project</a> page.</p>
-
-<h2>In the Wild</h2>
-
-<p>In practice, we use linear, weighted combinations of deltas to produce trending scores for any given domain, such as artists. Forgetsy doesn&#8217;t provide a server, but we send events to an rpc service that updates the deltas in a streamed manner. These events might include artist follows, artwork favorites, auction lot sales or individual page views.</p>
-
-<p>One requirement we have is lifetime flexibility. Forgetsy lets us stipulate the trending period τ on a delta by delta basis. This allows us to lower the lifetime significantly in a fair context, in which we track trends over just a few hours, contrasted with a general art market context, in which we&#8217;re interested in trends over weeks and months.</p>
-
-<p>In summary, the delta structures provided by Forgetsy provide you with a simple, scalable, transparent base for a trending algorithm that can be tuned to suit the specific dynamics of the domain in question.</p>
 ]]></content>
   </entry>
   
