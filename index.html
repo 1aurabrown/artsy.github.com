@@ -9,7 +9,7 @@
   <meta name="author" content="Artsy">
 
   
-  <meta name="description" content="The website is finally back up after crashing hard for 4 hours straight. Recently AWS decided to reboot a few of your servers for a critical update. &hellip;">
+  <meta name="description" content="Artsy has now grown past 100 team members and our Engineering organization is now 20 strong. For a brief overview of what the company has &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -79,6 +79,140 @@ src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorM
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+    <a href="/blog/2015/03/23/artsy-technology-stack-2015/">
+      <div class="date">
+
+
+
+
+  
+<time datetime="2015-03-23T00:00:00-04:00" pubdate>03/23/15</time></div>
+    
+    
+      <h1 class="entry-title">Artsy&#8217;s Technology Stack, 2015</h1>
+
+    
+    </a>
+    
+      <p class="meta">
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Artsy has now grown past 100 team members and our Engineering organization is now 20 strong. For a brief overview of what the company has accomplished in the last two years, check out our <a href="http://2013.artsy.net">2013</a> and <a href="http://2014.artsy.net">2014</a> reviews.</p>
+
+<p>This is a good opportunity to describe our updated technology stack. Last time <a href="/blog/2012/10/10/artsy-technology-stack">we did this</a> was when Artsy launched publicly in 2012.</p>
+
+<center><img src='/images/2015-03-23-artsy-technology-stack-2015/stats.png'></center>
+
+
+<p>Three years ago Artsy was a classic <a href="http://rubyonrails.org">Ruby-on-Rails</a> monolith with a handful of adjacent processes and tools. We&#8217;ve since broken it up into many independent services, and continue to heavily be a Ruby and JavaScript shop, using Rails where appropriate, with native code on mobile devices and some JVM-based experiments in micro-services.</p>
+
+<center><img src='/images/2015-03-23-artsy-technology-stack-2015/languages.png'></center>
+
+
+
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/03/23/artsy-technology-stack-2015/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+    <a href="/blog/2015/01/21/cocoapods-keys-and-CI/">
+      <div class="date">
+
+
+
+
+  
+<time datetime="2015-01-21T16:43:00-05:00" pubdate>01/21/15</time></div>
+    
+    
+      <h1 class="entry-title">CocoaPods-Keys and CI</h1>
+
+    
+    </a>
+    
+      <p class="meta">
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>We built CocoaPods-Keys as a way to remove API keys and secrets from our source code. We use it to open up our code to the pubic, without leaking private details. One of the cool things about doing it this way was that we could all use different API keys stashed away in each developers Keychain.</p>
+
+<p>To ensure we could run CI on our apps we came up with two different ways to use keys on CI. This post explains them both.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/01/21/cocoapods-keys-and-CI/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+    <a href="/blog/2015/01/04/cocoapods-and-frameworks/">
+      <div class="date">
+
+
+
+
+  
+<time datetime="2015-01-04T16:43:00-05:00" pubdate>01/04/15</time></div>
+    
+    
+      <h1 class="entry-title">CocoaPods and Frameworks</h1>
+
+    
+    </a>
+    
+      <p class="meta">
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>As I mentioned in my <a href="https://artsy.github.io/blog/2014/11/13/eidolon-retrospective/">retrospective on Eidolon</a>, Artsy iOS codebases are often used as testbeds for new CocoaPods features. With Eidolon, we had the opportunity to try out CocoaPods&#8217; support for frameworks and Swift. This post is a look back at the month of using dependencies as dynamic frameworks instead of static libraries.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/01/04/cocoapods-and-frameworks/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -427,138 +561,6 @@ about.</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-    <a href="/blog/2014/09/12/designing-the-public-artsy-api/">
-      <div class="date">
-
-
-
-
-  
-<time datetime="2014-09-12T12:21:00-04:00" pubdate>09/12/14</time></div>
-    
-    
-      <h1 class="entry-title">Designing the Public Artsy API</h1>
-
-    
-    </a>
-    
-      <p class="meta">
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Today we are happy to announce that we&#8217;re making a new public API generally available, along with over 26,000 artworks from many of our institutional partners.</p>
-
-<p>The Artsy API currently provides access to images of historic artwork and related information on <a href="https://artsy.net">artsy.net</a> for educational and other non-commercial purposes. You can try it for playing, testing, and learning, but not yet for production. The scope of the API will expand in the future as it gains some traction.</p>
-
-<p><a href="https://developers.artsy.net"><img src="/images/2014-09-12-designing-the-public-artsy-api/the-art-world-in-your-app.png" border="0"></a></p>
-
-<p>If you just want to use the API, you can stop reading here and head to the <a href="https://developers.artsy.net/">developers.artsy.net</a> website. (The developers website itself is a classic Rails + Boootstrap example and is also <a href="https://github.com/artsy/doppler">open-source</a>.)</p>
-
-<p>In this post we will step back and describe some of the technical decisions made during the development of the new API.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2014/09/12/designing-the-public-artsy-api/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-    <a href="/blog/2014/09/05/we-open-sourced-our-isomorphic-javascript-website/">
-      <div class="date">
-
-
-
-
-  
-<time datetime="2014-09-05T15:09:00-04:00" pubdate>09/05/14</time></div>
-    
-    
-      <h1 class="entry-title">We Open Sourced Our Isomorphic Javascript Website</h1>
-
-    
-    </a>
-    
-      <p class="meta">
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><img src="/images/2014-09-05-we-open-sourced-our-isomorphic-javascript-website/force.png" alt="May The Force be With You" /></p>
-
-<p>Today we&#8217;re happy to announce we&#8217;ve open sourced the entire Artsy.net web app, <a href="https://github.com/artsy/force-public">Force</a>.</p>
-
-<p>Over the past few months, we&#8217;ve rewritten our web front-end to move off Rails and on to a <a href="http://nodejs.org/">Node.js</a> stack that shares Javascript code and rendering between the server and client, otherwise known as <a href="http://nerds.airbnb.com/isomorphic-JavaScript-future-web-apps/">Isomorphic Javascript</a>. After migrating to this new stack, we open-sourced our boilerplate, <a href="http://ezeljs.com">Ezel</a>, and have now gone a step further and open sourced Artsy.net.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2014/09/05/we-open-sourced-our-isomorphic-javascript-website/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-    <a href="/blog/2014/08/08/CocoaPods-Caching/">
-      <div class="date">
-
-
-
-
-  
-<time datetime="2014-08-08T11:46:00-04:00" pubdate>08/08/14</time></div>
-    
-    
-      <h1 class="entry-title">Using CocoaPods Caching With Travis CI</h1>
-
-    
-    </a>
-    
-      <p class="meta">
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>As <a href="http://artsy.github.io/blog/2014/08/07/taking-a-snapshot-with-second-curtain/">Ash said earlier</a> we like using Continuous Integration. Today I spent a large amount of time migrating us to use the new CocoaPods caching system in Travis CI. To make up for my lost time I&#8217;m passing on what I&#8217;ve learned and also showing how we do CI at Artsy with Objective-C apps. If you&#8217;re interested in how we do it in Swift, you can just check <a href="https://github.com/artsy/eidolon">Eidolon</a>.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2014/08/08/CocoaPods-Caching/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -585,23 +587,23 @@ about.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/03/23/artsy-technology-stack-2015/">Artsy's Technology Stack, 2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/01/21/cocoapods-keys-and-CI/">CocoaPods-Keys and CI</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/01/04/cocoapods-and-frameworks/">CocoaPods and Frameworks</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/11/19/how-to-write-great-outage-post-mortems/">How to Write Great Outage Post-Mortems</a>
       </li>
     
       <li class="post">
         <a href="/blog/2014/11/18/debugging-our-hardware-problem/">Close to the Metal: Debugging Our Hardware Problem</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/11/13/eidolon-retrospective/">Developing a Bidding Kiosk for iOS in Swift</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/10/23/how-we-customized-google-site-search-at-artsy/">How we customized Google Site Search at Artsy</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/09/24/launching-a-security-bug-bounty-program-at-artsy/">Launching a Security Bug Bounty Program at Artsy</a>
       </li>
     
   </ul>
@@ -623,7 +625,7 @@ about.</p>
     </div>
   </div>
   <footer id="main_footer"><p>
-  Copyright &copy; 2014 - Artsy -
+  Copyright &copy; 2015 - Artsy -
   <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
 </p>
 
